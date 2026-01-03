@@ -1,10 +1,5 @@
 import 'package:permission_handler/permission_handler.dart' as Permissionhandler;
 import 'package:flutter_progress_hud/flutter_progress_hud.dart';
-import 'package:promoterapp/provider/DropdownProvider.dart';
-import 'dart:convert';
-import 'dart:io';
-import 'package:flutter/material.dart';
-import 'package:promoterapp/config/Color.dart';
 import 'package:promoterapp/config/Common.dart';
 import 'package:promoterapp/models/Item.dart';
 import 'package:promoterapp/models/SalesItem.dart';
@@ -21,10 +16,14 @@ import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:geocoding/geocoding.dart' as Geocoding;
 import 'package:geolocator/geolocator.dart';
 import 'package:provider/provider.dart';
-import 'package:dotted_border/dotted_border.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:path/path.dart' as path;
+import 'package:promoterapp/provider/DropdownProvider.dart';
+import 'package:sim_data_plus/sim_data.dart';
+import 'package:flutter/material.dart';
+import 'dart:convert';
+import 'dart:io';
 
 List dynamicList = [];
 class SalesEntry  extends StatefulWidget{
@@ -47,19 +46,22 @@ class SalesEntryState extends State<SalesEntry>{
   int _batteryLevel = 0,userid = 0,shopid = 0;
   bool isturnedon = true;
   String attstatus = "";
+  String _currentAddress="";
   List<Item> itemdata = [];
   List allitems = [];
   int _counter = 0,idx=0;
   File? cameraFile, cameraFile1, cameraFile2, f, f1, f2;
   List<Shops> shopdata = [];
   bool _isLoading = false;
+  String? serielno;
 
   @override
   void initState() {
     super.initState();
 
+    printSimCardsData();
     getuserdetails('Userdetails');
-    getallbeat('GetShopsData').then((value) => allbeatlist(value));
+    getallbeat('GetShopsDataver3').then((value) => allbeatlist(value));
 
     getCurrentPosition();
     getsharedprefdata();
@@ -71,11 +73,15 @@ class SalesEntryState extends State<SalesEntry>{
 
   }
 
-  void allbeatlist(value){
+  void allbeatlist(value) {
+
+    setState(() {
+      _isLoading = true;
+    });
 
     if(value.length == 0){
 
-      Future.delayed(Duration(seconds: 3), () {
+      Future.delayed(const Duration(seconds: 3), () {
 
         Navigator.push(
             context,
@@ -95,29 +101,30 @@ class SalesEntryState extends State<SalesEntry>{
 
     }else{
 
-      shopdata = value;
+        shopdata = value;
+        if(attstatus=="P"||attstatus=="NOON"){
+          showbeatt(attstatus,context,shopdata);
+        }
 
-      // for(int i=0 ;i<value.length;i++){
-      //
-      //   if(value[i].retailerName != ""){
-      //
-      //     print("length${value.length}");
-      //
-      //     setState(() {
-      //
-      //       beatnamelist.add(value[i].retailerName.toString());
-      //       beatIdlist.add(value[i].retailerID!.toInt());
-      //
-      //     });
-      //
-      //   }
-      //
-      // }
-      //
-      // beatnamelist = LinkedHashSet<String>.from(beatnamelist).toList();
-      //
-      // beatIdlist = LinkedHashSet<int>.from(beatIdlist).toList();
+    }
 
+  }
+
+  void printSimCardsData() async {
+
+    print('printSimCardsData');
+
+    try {
+
+      SimData simData = await SimDataPlugin.getSimData();
+      print('printSimCardsData2');
+      // for (var s in simData.cards) {
+      serielno = simData.cards[0].serialNumber;
+
+    } catch (e) {
+
+      print('Serial number: ${e}');
+      // debugPrint("error! code: ${e.code} - message: ${e.message}");
     }
 
   }
@@ -133,8 +140,120 @@ class SalesEntryState extends State<SalesEntry>{
 
     userid  = SharedPrefClass.getInt(USER_ID);
     attstatus = SharedPrefClass.getString(ATT_STATUS);
-
     shopid = SharedPrefClass.getInt(SHOP_ID);
+
+  }
+
+  Future<void> showbeatt(String status,BuildContext contextt, List<Shops> beatnamelist) async {
+
+    if(beatnamelist.isEmpty){
+
+      Navigator.pop(contextt);
+
+      Fluttertoast.showToast(msg: "You don't have any beat! \n Please contact admin",
+          toastLength: Toast.LENGTH_SHORT,
+          gravity: ToastGravity.BOTTOM,
+          timeInSecForIosWeb: 1,
+          backgroundColor: Colors.black,
+          textColor: Colors.white,
+          fontSize: 16.0);
+
+    }else{
+
+      return showDialog<void>(
+        context: contextt,
+        barrierDismissible: false,
+        builder: (BuildContext context) {
+          contextt = context;
+          return WillPopScope(
+              child: AlertDialog(
+
+                title: const Text('Select Shop'),
+                content: SizedBox(
+                  width: 400,
+                  // height: 100,
+                  child: ListView.builder(
+                      shrinkWrap: true,
+                      itemCount: beatnamelist.length,
+                      itemBuilder: (context,i){
+                        return GestureDetector(
+
+                            onTap: (){
+
+                              Navigator.pop(contextt);
+
+                              if(SharedPrefClass.getDouble(latitude)==0.0){
+
+                                Fluttertoast.showToast(msg: "Please check your connection!",
+                                    toastLength: Toast.LENGTH_SHORT,
+                                    gravity: ToastGravity.BOTTOM,
+                                    timeInSecForIosWeb: 1,
+                                    backgroundColor: Colors.black,
+                                    textColor: Colors.white,
+                                    fontSize: 16.0);
+
+                              }else{
+
+                                if(getdistance(SharedPrefClass.getDouble(latitude),SharedPrefClass.getDouble(longitude),double.parse(beatnamelist[i].latitude!),double.parse(beatnamelist[i].longitude!))){
+
+                                  print("beatlistid"+(beatnamelist[i].retailerID!.toInt()).toString());
+                                  SharedPrefClass.setInt(SHOP_ID,beatnamelist[i].retailerID!.toInt());
+
+                                }else{
+
+                                  setState(() {
+                                    _isLoading=false;
+                                  });
+
+                                  Fluttertoast.showToast(msg: "Too far from store!",
+                                      toastLength: Toast.LENGTH_SHORT,
+                                      gravity: ToastGravity.BOTTOM,
+                                      timeInSecForIosWeb: 1,
+                                      backgroundColor: Colors.black,
+                                      textColor: Colors.white,
+                                      fontSize: 16.0);
+
+                                  Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                          builder: (contextt) =>
+                                              HomeScreen()
+                                      )
+                                  );
+
+                                }
+
+                              }
+
+                            },
+                            child: Container(
+                              padding:EdgeInsets.all(10),
+                              child: Text("${beatnamelist[i].retailerName}"),
+                            )
+
+                        );
+                      }
+                  ),
+                )
+              ),
+              onWillPop: ()  {
+
+              Navigator.push(
+                 context,
+                 MaterialPageRoute(
+                 builder: (contextt) =>
+                 HomeScreen()
+                )
+              );
+              return new Future(() => true);
+
+             },
+          );
+
+        },
+      );
+
+    }
 
   }
 
@@ -144,16 +263,25 @@ class SalesEntryState extends State<SalesEntry>{
     if (!hasPermission) return;
 
     await Geolocator.getCurrentPosition(desiredAccuracy: LocationAccuracy.high)
-        .then((Position position) {
+        .then((Position position) async {
       currentPosition = position;
+      //print("current location is null${position.latitude}");
 
-      SharedPrefClass.setDouble(latitude, position.latitude);
-      SharedPrefClass.setDouble(longitude, position.longitude);
+      if(position.latitude==0.0){
+        //print("current location is null");
+        currentPosition = await Geolocator.getLastKnownPosition();
+        //print("current location is null catch ${currentPosition!.latitude}");
+      }
 
-      // setState(() => currentPosition = position);
+      SharedPrefClass.setDouble(latitude, currentPosition!.latitude);
+      SharedPrefClass.setDouble(longitude, currentPosition!.longitude);
+
       _getAddressFromLatLng(currentPosition!);
 
-    }).catchError((e) {
+    }).catchError((e) async {
+      //print("current location is null catch");
+      currentPosition = await Geolocator.getLastKnownPosition();
+      //print("current location is null catch ${currentPosition!.latitude}");
       debugPrint(e);
     });
 
@@ -164,7 +292,14 @@ class SalesEntryState extends State<SalesEntry>{
     await Geocoding.placemarkFromCoordinates(
         currentPosition!.latitude, currentPosition!.longitude)
         .then((List<Geocoding.Placemark> placemarks) {
-      Geocoding.Placemark place = placemarks[0];
+
+      if (placemarks != null && placemarks.isNotEmpty) {
+        Geocoding.Placemark place = placemarks[0];
+        _currentAddress = '${place.street}, ${place.subLocality}, ${place
+            .subAdministrativeArea}, ${place.postalCode}';
+      }else{
+        print("unknown address");
+      }
 
     }).catchError((e) {
       debugPrint(e);
@@ -248,6 +383,7 @@ class SalesEntryState extends State<SalesEntry>{
             body: attstatus=="P" || attstatus=="NOON"? ProgressHUD(
                 child:Builder(
                   builder:(ctx)=>
+
                       Scaffold(
                         body: Column(
                           children: [
@@ -311,7 +447,12 @@ class SalesEntryState extends State<SalesEntry>{
                                           onTap: (){
 
                                             final progress  = ProgressHUD.of(ctx);
-                                            save(dropdownOptionsProvider,context,progress);
+                                           // if(currentPosition?.latitude==0.0 || currentPosition?.latitude == null){
+                                              save(dropdownOptionsProvider,context,progress);
+
+                                            // }else{
+                                            //   Fluttertoast.showToast(msg: "Please turn on location");
+                                            // }
 
                                           },
 
@@ -340,13 +481,9 @@ class SalesEntryState extends State<SalesEntry>{
                                       child: Container(
                                         padding: EdgeInsets.all(5),
                                         height: 100,
-                                        child: DottedBorder(
-                                          color:grey,
-                                          strokeWidth: 1,
-                                          child:Center(
-                                              child:cameraFile==null?Image.asset('assets/Images/plus.png',height: 15):Image.file(File(cameraFile!.path),width: MediaQuery.of(context).size.width)
-                                          ),
-                                        ),
+                                        child:Center(
+                                            child:cameraFile==null?Image.asset('assets/Images/plus.png',height: 15):Image.file(File(cameraFile!.path),width: MediaQuery.of(context).size.width)
+                                        )
                                       )
                                   ),
                                 ),
@@ -360,14 +497,10 @@ class SalesEntryState extends State<SalesEntry>{
                                       child: Container(
                                         padding: EdgeInsets.all(5),
                                         height: 100,
-                                        child: DottedBorder(
-                                            color:grey,
-                                            strokeWidth: 1,
-                                            child:Center(
-                                                child:cameraFile1==null?Image.asset('assets/Images/plus.png',height: 15):Image.file(File(cameraFile1!.path))
+                                        child:Center(
+                                            child:cameraFile1==null?Image.asset('assets/Images/plus.png',height: 15):Image.file(File(cameraFile1!.path))
 
-                                            )
-                                        ),
+                                        )
                                       ),
                                     )
                                 ),
@@ -381,14 +514,9 @@ class SalesEntryState extends State<SalesEntry>{
                                       child: Container(
                                         padding: EdgeInsets.all(5),
                                         height: 100,
-                                        child: DottedBorder(
-                                            color:grey,
-                                            strokeWidth: 1,
-                                            child:Center(
-                                                child:cameraFile2==null?Image.asset('assets/Images/plus.png',height: 15):Image.file(File(cameraFile2!.path))
-
-                                            )
-                                        ),
+                                        child: Center(
+                                            child:cameraFile1==null?Image.asset('assets/Images/plus.png',height: 15):Image.file(File(cameraFile1!.path))
+                                        )
                                       ),
                                     )
                                 ),
@@ -405,9 +533,10 @@ class SalesEntryState extends State<SalesEntry>{
                               ),
                             ),
 
-                          ],
-                        ),
+                         ],
                       ),
+                   ),
+
                 )
             ):AlertDialog(
               content:Wrap(
@@ -514,14 +643,6 @@ class SalesEntryState extends State<SalesEntry>{
 
       Fluttertoast.showToast(msg: "Please select SKU");
 
-    }else if(os!=dynamicList.length){
-
-      Fluttertoast.showToast(msg: "Please enter opening stock");
-
-    }else if(cs!=dynamicList.length){
-
-      Fluttertoast.showToast(msg: "Please enter closing stock");
-
     }else if(smpstk!=dynamicList.length){
 
       Fluttertoast.showToast(msg: "Please enter sample stock");
@@ -547,8 +668,8 @@ class SalesEntryState extends State<SalesEntry>{
         items.add(
             SalesItem(
             int.parse(dropdownOptionsProvider.SKUid[i].toString()),
-            int.parse(dropdownOptionsProvider.open_stoc[i].toString()),
-            int.parse(dropdownOptionsProvider.clos_stoc[i].toString()),
+            // int.parse(dropdownOptionsProvider.open_stoc[i].toString()),
+            // int.parse(dropdownOptionsProvider.clos_stoc[i].toString()),
             int.parse(dropdownOptionsProvider.sampl_stoc[i].toString()),
             dropdownOptionsProvider.selectedpieces[i],
             dropdownOptionsProvider.selectedquantity[i]
@@ -558,23 +679,25 @@ class SalesEntryState extends State<SalesEntry>{
       }
 
       var salesentry = [{
-
+           "location":_currentAddress,
            "personId": userid,
-           "shopId": shopid,
+           "shopId": SharedPrefClass.getInt(SHOP_ID),
            "timeStamp": dt,
            "latitude": currentPosition?.latitude,
            "longitude": currentPosition?.longitude,
+           "simNo":serielno,
+           "address":"",
            "battery": _batteryLevel,
            "GpsEnabled": "GPS",
            "accuracy": currentPosition?.accuracy,
            "speed": currentPosition?.speed,
            "provider": "GPS",
            "altitude": currentPosition?.altitude,
-           "items": items,
+           "items": json.encode(items),
+      }];
 
-        }];
-      
       var body = json.encode(salesentry);
+      print("body ${salesentry.toString()}");
 
       try{
 
@@ -598,7 +721,7 @@ class SalesEntryState extends State<SalesEntry>{
 
       }catch(e){
 
-        print("$e");
+        print("exception $e");
 
       }
 
@@ -625,29 +748,36 @@ class SalesEntryState extends State<SalesEntry>{
       barrierDismissible: false,
       builder: (BuildContext context) {
         context = context;
-        return AlertDialog(
-            title: const Text('Select SKU'),
-            content: ListView.builder(
-                shrinkWrap: true,
-                itemCount: SKUlist.length,
-                itemBuilder: (context,i){
-                  return GestureDetector(
+        return StatefulBuilder(
+          builder: (context,setState){
+            return AlertDialog(
+                title: const Text('Select SKU'),
+                content: SizedBox(
+                    width: 400, // Adjust the width as needed
+                    height: 300,
+                    child: ListView.builder(
+                      shrinkWrap: true,
+                      itemCount: SKUlist.length,
+                      itemBuilder: (context,i){
+                        return GestureDetector(
+                            onTap: (){
 
-                      onTap: (){
+                              Navigator.pop(context);
+                              addwidget(SKUlist[i]['itemName'],SKUlist[i]['itemID'],SKUlist[i]['imageurl'],num.parse(SKUlist[i]['quantity']));
 
-                        Navigator.pop(context);
-                        addwidget(SKUlist[i]['itemName'],SKUlist[i]['itemID'],SKUlist[i]['imageurl'],num.parse(SKUlist[i]['quantity']));
+                            },
 
-                      },
+                            child: Container(
+                              padding:const EdgeInsets.all(10),
+                              child: Text("${SKUlist[i]['itemName']}"),
+                            )
 
-                      child: Container(
-                        padding:const EdgeInsets.all(10),
-                        child: Text("${SKUlist[i]['itemName']}"),
-                      )
-
-                  );
-                }
-            )
+                        );
+                      }
+                  )
+               )
+            );
+          },
         );
       },
     );

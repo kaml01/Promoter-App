@@ -1,13 +1,26 @@
+//const String IP_URL="http://172.99.188.96/AndroidServer/";
 
-// const String IP_URL="http://172.99.188.96/AndroidServer/";
+//const String IP_URL="http://dsr.jivocanola.com/AndroidServer/";
+// ,const String IP_URL="http://192.168.1.249:90/AndroidServer/";
+bool proxyStatus = false;
+//static var IP_URL="http://172.99.188.96/AndroidServer/";
+//static var IP_URL = "http://192.168.1.249:9090/AndroidServer/";
 
-const String IP_URL="http://dsr.jivocanola.com/AndroidServer/";
-// const String IP_URL="http://192.168.1.249:9090/AndroidServer/";
+const String IP_URL = "ip_url" ;
 
 const String USER_ID = "userId";
 const String PERSON_TYPE = "personType";
 const String PERSON_NAME = "personName";
 const String GROUP = "group";
+const String ASSIGNED = "assigned";
+const String COVERED = "covered";
+const String PRODUCTIVE = "productive";
+const String CANOLA = "canola";
+const String OLIVE = "olive";
+const String GOLD = "gold";
+const String SUNFLOWER = "sunflower";
+const String SOYABEAN = "SOYABEAN";
+const String COTTONSEED = "cottonseed";
 const String TARGET = "target";
 const String BEAT_ID = "beat_id";
 const String BEAT_NAME = "beat_name";
@@ -30,6 +43,7 @@ const String dashboard = 'My Dashboard';
 const String appTitle = 'Drawer Demo';
 const String latitude = 'latitude';
 const String longitude = 'longitude';
+const String address = 'address';
 
 bool present = true, hd = true, wo = true,eod = true ,ab =true;
 bool penabled = true,hdenabled = true,woenabled = true,eodenabled = true,abenabled= true;

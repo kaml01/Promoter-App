@@ -1,5 +1,6 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:promoterapp/config/Color.dart';
 import 'package:promoterapp/provider/DropdownProvider.dart';
 import 'package:provider/provider.dart';
 
@@ -22,6 +23,7 @@ class MyWidget extends StatelessWidget{
     final dropdownOptionsProvider = Provider.of<DropdownProvider>(context);
 
     return Container(
+        color: light_grey,
         width: double.infinity,
         margin: const EdgeInsets.only(left: 10, right: 10,top: 10),
         child: Column(
@@ -47,6 +49,7 @@ class MyWidget extends StatelessWidget{
                     ),
 
                     Container(
+                      color: white,
                       padding: EdgeInsets.only(left: 10,top: 10,bottom: 10),
                       child:Row(
 
@@ -61,47 +64,47 @@ class MyWidget extends StatelessWidget{
                                 flex: 1,
                                 child:Column(
                                   children: [
-
-                                    SizedBox(
-                                      width: 110,
-                                      child: TextField(
-                                        controller: op_stock,
-                                        onChanged: (value){
-                                          // if(page==""){
-                                          dropdownOptionsProvider.addopeningstock(idx, int.parse(value), skuid);
-                                          // }else{
-                                          //   dropdownOptionsProvider.additemdropdown(idx, int.parse(value), skuid,quantity);
-                                          // }
-
-                                        },
-                                        keyboardType: TextInputType.number,
-                                        decoration: InputDecoration(
-                                            hintText: "Opening Stock"
-                                        ),
-                                        style: TextStyle(fontSize: 16.0, height: 2.0, color: Colors.black),
-                                      ),
-                                    ),
-
-                                    SizedBox(
-                                      width: 110,
-                                      child: TextField(
-                                        controller: clo_stock,
-                                        onChanged: (value){
-
-                                          // if(page==""){
-                                          dropdownOptionsProvider.addclosingstock(idx, int.parse(value), skuid);
-                                          // }else{
-                                          //   dropdownOptionsProvider.additemdropdown(idx, int.parse(value), skuid,quantity);
-                                          // }
-
-                                        },
-                                        keyboardType: TextInputType.number,
-                                        decoration: InputDecoration(
-                                            hintText: "Closing Stock"
-                                        ),
-                                        style: TextStyle(fontSize: 16.0, height: 2.0, color: Colors.black),
-                                      ),
-                                    ),
+                                    //
+                                    // SizedBox(
+                                    //   width: 110,
+                                    //   child: TextField(
+                                    //     controller: op_stock,
+                                    //     onChanged: (value){
+                                    //       // if(page==""){
+                                    //       dropdownOptionsProvider.addopeningstock(idx, int.parse(value), skuid);
+                                    //       // }else{
+                                    //       //   dropdownOptionsProvider.additemdropdown(idx, int.parse(value), skuid,quantity);
+                                    //       // }
+                                    //
+                                    //     },
+                                    //     keyboardType: TextInputType.number,
+                                    //     decoration: InputDecoration(
+                                    //         hintText: "Opening Stock"
+                                    //     ),
+                                    //     style: TextStyle(fontSize: 16.0, height: 2.0, color: Colors.black),
+                                    //   ),
+                                    // ),
+                                    //
+                                    // SizedBox(
+                                    //   width: 110,
+                                    //   child: TextField(
+                                    //     controller: clo_stock,
+                                    //     onChanged: (value){
+                                    //
+                                    //       // if(page==""){
+                                    //       dropdownOptionsProvider.addclosingstock(idx, int.parse(value), skuid);
+                                    //       // }else{
+                                    //       //   dropdownOptionsProvider.additemdropdown(idx, int.parse(value), skuid,quantity);
+                                    //       // }
+                                    //
+                                    //     },
+                                    //     keyboardType: TextInputType.number,
+                                    //     decoration: InputDecoration(
+                                    //         hintText: "Closing Stock"
+                                    //     ),
+                                    //     style: TextStyle(fontSize: 16.0, height: 2.0, color: Colors.black),
+                                    //   ),
+                                    // ),
 
                                     SizedBox(
                                       width: 110,

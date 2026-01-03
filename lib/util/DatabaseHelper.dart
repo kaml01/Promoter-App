@@ -30,7 +30,7 @@ class DatabaseHelper {
   }
 
   Future<int> insertdata(List<Item> skulist) async {
-
+    print("skulist length ${skulist.length}");
     final db = await DatabaseHelper.db();
     var id;
 

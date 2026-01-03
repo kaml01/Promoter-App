@@ -1,20 +1,25 @@
-import 'dart:async';
-import 'dart:convert';
-import 'package:location/location.dart';
-import 'package:flutter/cupertino.dart';
-import 'package:flutter/material.dart';
+import 'package:permission_handler/permission_handler.dart' as Permissionhandler;
+import 'package:geocoding/geocoding.dart' as Geocoding;
+import 'package:geolocator/geolocator.dart' as geo;
+import 'package:promoterapp/util/functionhelper.dart';
+import 'package:mobile_number/mobile_number.dart';
+import 'package:promoterapp/util/ApiHelper.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'package:promoterapp/models/Shops.dart';
-import 'package:promoterapp/util/ApiHelper.dart';
-import 'package:promoterapp/util/functionhelper.dart';
-import '../config/Common.dart';
-import '../util/Shared_pref.dart';
-import 'HomeScreen.dart';
-import 'package:permission_handler/permission_handler.dart' as Permissionhandler;
-import 'package:image_picker/image_picker.dart';
-import 'dart:io';
+import 'package:location/location.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:path/path.dart' as path;
 import 'package:http/http.dart' as http;
+import 'package:flutter/services.dart';
+import 'package:flutter/material.dart';
+import '../util/Shared_pref.dart';
+import '../config/Common.dart';
+import 'HomeScreen.dart';
+import 'dart:convert';
+import 'dart:async';
+import 'dart:io';
+
 
 class Attendance extends StatefulWidget{
 
@@ -36,18 +41,121 @@ class AttendanceState extends State<Attendance>{
   get progress => null;
   List<Shops> shopdata = [];
   bool cstatus = false ,lstatus =false,gpsstatus=false;
-  Location location = new Location();
+  Location location = Location();
   Timer? timer;
   File? f;
+  String? serielno;
+  String _currentAddress="";
+  List<SimCard> _simCard = <SimCard>[];
 
   @override
   void initState() {
     super.initState();
-
+    initMobileNumberState();
     askpermission();
     getCurrentPosition(context);
     getAttendanceStatus();
-    getallbeat('GetShopsData').then((value) => allbeatlist(value));
+    setState(() {
+      _isLoading = true;
+    });
+
+    getallbeat('GetShopsDataver3').then((value) => allbeatlist(value));
+
+  }
+
+  Future<bool> _handleLocationPermission(context) async {
+    bool serviceEnabled;
+    geo.LocationPermission permission;
+
+    serviceEnabled = await geo.Geolocator.isLocationServiceEnabled();
+
+    if (!serviceEnabled) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content: Text(
+              'Location services are disabled. Please enable the services')));
+      return false;
+    }
+    permission = await geo.Geolocator.checkPermission();
+
+    if (permission == geo.LocationPermission.denied) {
+      permission = await geo.Geolocator.requestPermission();
+      if (permission == geo.LocationPermission.denied) {
+
+        ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Location permissions are denied')));
+
+        return false;
+      }
+    }
+    if (permission == geo.LocationPermission.deniedForever) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content: Text(
+              'Location permissions are permanently denied, we cannot request permissions.')));
+      return false;
+    }
+    return true;
+  }
+
+  Future<void> getCurrentPosition(context) async {
+    final hasPermission = await _handleLocationPermission(context);
+    if (!hasPermission) return;
+
+    try {
+      geo.Position position = await geo.Geolocator.getCurrentPosition(
+          desiredAccuracy: geo.LocationAccuracy.high
+      );
+
+      if (position.latitude == 0.0) {
+        position = (await geo.Geolocator.getLastKnownPosition())!;
+      }
+
+      currentPosition = position;
+      await SharedPrefClass.setDouble(latitude, position.latitude);
+      await SharedPrefClass.setDouble(longitude, position.longitude);
+
+      print("latitude ${SharedPrefClass.getDouble(latitude)}");
+
+      await _getAddressFromLatLng(position);
+    } catch (e) {
+      debugPrint('Location error: $e');
+    }
+  }
+
+  Future<void> _getAddressFromLatLng(geo.Position position) async {
+
+    await Geocoding.placemarkFromCoordinates(
+        currentPosition!.latitude, currentPosition!.longitude)
+        .then((List<Geocoding.Placemark> placemarks) {
+
+      if (placemarks != null && placemarks.isNotEmpty) {
+
+        Geocoding.Placemark place = placemarks[0];
+        _currentAddress = '${place.street}, ${place.subLocality}, ${place
+            .subAdministrativeArea}, ${place.postalCode}';
+
+      }else{
+        print("unknown address");
+      }
+
+    }).catchError((e) {
+      debugPrint(e);
+    });
+
+    //
+    // await Geocoding.placemarkFromCoordinates(
+    //     currentPosition!.latitude, currentPosition!.longitude)
+    //     .then((List<Geocoding.Placemark> placemarks) {
+    //   Geocoding.Placemark place = placemarks[0];
+    //
+    //   // setState(() {
+    //   //
+    //   //   _currentAddress = '${place.street}, ${place.subLocality}, ${place.subAdministrativeArea}, ${place.postalCode}';
+    //   //
+    //   // });
+    //
+    // }).catchError((e) {
+    //   debugPrint(e);
+    // });
 
   }
 
@@ -55,6 +163,66 @@ class AttendanceState extends State<Attendance>{
   void dispose() {
     timer?.cancel();
     super.dispose();
+  }
+
+
+  Future<void> initMobileNumberState() async {
+
+    if (!await MobileNumber.hasPhonePermission) {
+      await MobileNumber.requestPhonePermission;
+      return;
+    }
+
+    try {
+      _simCard = (await MobileNumber.getSimCards)!;
+      print("simdata1 $_simCard");
+    } on PlatformException catch (e) {
+      debugPrint("Failed to get mobile number because of '${e.message}'");
+    }
+
+    fillCards();
+
+    if (!mounted) return;
+
+    setState(() {});
+  }
+
+  void fillCards() {
+
+    for(int i=0;i<_simCard.length;i++){
+      serielno = _simCard[i].number;
+    }
+
+  }
+
+  void printSimCardsData() async {
+
+    // try {
+    //
+    //   SimData simData = await SimDataPlugin.getSimData();
+    //
+    //   for (var s in simData.cards) {
+    //      serielno = simData.cards[0].serialNumber;
+    //      print('Serial number: ${s.slotIndex} ${s.serialNumber}');
+    //
+    //   }
+    //
+    // } catch (e) {
+    //
+    //   Fluttertoast.showToast(
+    //       msg: "This is Toast",
+    //       toastLength: Toast.LENGTH_SHORT,
+    //       gravity: ToastGravity.CENTER,
+    //       timeInSecForIosWeb: 1,
+    //       backgroundColor: Colors.red,
+    //       textColor: Colors.white,
+    //       fontSize: 16.0
+    //   );
+    //
+    //   print('Serial number: ${e}');
+    //   // debugPrint("error! code: ${e.code} - message: ${e.message}");
+    // }
+
   }
 
   Future<void> askpermission() async {
@@ -73,9 +241,9 @@ class AttendanceState extends State<Attendance>{
 
       }
 
+      print("camerastatusisgranted ${camerastatus.isGranted}");
       if(camerastatus.isGranted==true){
         cstatus = true;
-
       }
 
       if(locationstatus.isGranted == true){
@@ -135,9 +303,40 @@ class AttendanceState extends State<Attendance>{
     }else{
 
       shopdata = value;
+      setState(() {
+        _isLoading = false;
+      });
 
     }
 
+  }
+
+  Future<void> showalltimepermissiondialog() async {
+    return showDialog<void>(
+      context: context,
+      barrierDismissible: false, // user must tap button!
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Disclosure'),
+          content: const SingleChildScrollView(
+            child: ListBody(
+              children: <Widget>[
+                Text('This app collects location data to enable background location even when the app is closed or not in use'),
+
+              ],
+            ),
+          ),
+          actions: <Widget>[
+            TextButton(
+              child: const Text('ok'),
+              onPressed: () {
+
+              },
+            ),
+          ],
+        );
+      },
+    );
   }
 
   @override
@@ -193,9 +392,9 @@ class AttendanceState extends State<Attendance>{
 
                                 }else{
 
-                                  setState(() {
-                                    _isLoading=true;
-                                  });
+                                  // setState(() {
+                                  //   _isLoading=true;
+                                  // });
 
                                   showdialogg("P",ctx,shopdata);
 
@@ -205,7 +404,7 @@ class AttendanceState extends State<Attendance>{
                               child:Container(
                                 height: 100,
                                 width: 100,
-                                margin: EdgeInsets.all(10),
+                                margin: const EdgeInsets.all(10),
                                 decoration: BoxDecoration(
                                   color:  present ? const Color(0xff0e0e0e) : Colors.grey,
                                   borderRadius: BorderRadius.circular(12),
@@ -227,20 +426,8 @@ class AttendanceState extends State<Attendance>{
                                   _isLoading=true;
                                 });
 
-                                // final progress  = ProgressHUD.of(ctx);
-                                // progress?.show();
                                 showdialogg("EOD",ctx, shopdata);
 
-                                // timer = Timer.periodic(Duration(seconds: 2), (Timer t) => {
-                                //
-                                //   if(_isLoading==false){
-                                //
-                                //     timer?.cancel(),
-                                //
-                                //
-                                //   }
-                                //
-                                // });
                               }:null,
 
                               child:Container(
@@ -399,7 +586,6 @@ class AttendanceState extends State<Attendance>{
           return new Future(() => true);
 
         }
-
     );
 
   }
@@ -407,6 +593,7 @@ class AttendanceState extends State<Attendance>{
   Future<void> showdialogg(String status,BuildContext ctx, List<Shops> listdata) async {
 
     return showDialog(
+      
         barrierDismissible: false,
         context: context,
         builder:(BuildContext context) {
@@ -429,11 +616,9 @@ class AttendanceState extends State<Attendance>{
 
               TextButton(
                 onPressed: () =>{
-                  // Navigator.pop(context),
-                  print("$status "),
+
                   if(status=="P" || status=="NOON" ||status=="EOD"){
 
-                   // print("inside "),
                     gettodaysbeatt(status,ctx,listdata),
 
                   }else{
@@ -443,7 +628,6 @@ class AttendanceState extends State<Attendance>{
                   }
 
                 },
-
                 child: const Text('Yes'),
               ),
 
@@ -452,7 +636,7 @@ class AttendanceState extends State<Attendance>{
           );
 
         }
-
+      
     );
 
   }
@@ -480,7 +664,7 @@ class AttendanceState extends State<Attendance>{
 
       Navigator.pop(contextt);
 
-      Fluttertoast.showToast(msg: "You don't have any beat! \n Please contact admin",
+      Fluttertoast.showToast(msg: "No shop assigned",
           toastLength: Toast.LENGTH_SHORT,
           gravity: ToastGravity.BOTTOM,
           timeInSecForIosWeb: 1,
@@ -491,68 +675,84 @@ class AttendanceState extends State<Attendance>{
     }else{
 
       Navigator.pop(contextt);
-      //  progress.dismiss();
 
       return showDialog<void>(
         context: contextt,
         barrierDismissible: false,
         builder: (BuildContext context) {
           contextt = context;
-          return AlertDialog(
-            title: const Text('Select Shop'),
-            content:ListView.builder(
-                shrinkWrap: true,
-                itemCount: beatnamelist.length,
-                itemBuilder: (context,i){
-                  return GestureDetector(
+          return WillPopScope(
+              child: AlertDialog(
+                title: const Text('Select Shop'),
+                content: SizedBox(
+                  width:400,
+                  child: ListView.builder(
+                      shrinkWrap: true,
+                      itemCount: beatnamelist.length,
+                      itemBuilder: (context,i){
+                        return GestureDetector(
 
-                      onTap: (){
+                            onTap: (){
 
-                        Navigator.pop(contextt);
-                        if(SharedPrefClass.getDouble(latitude)==0.0){
+                              Navigator.pop(contextt);
 
-                          Fluttertoast.showToast(msg: "Please check your connection!",
-                              toastLength: Toast.LENGTH_SHORT,
-                              gravity: ToastGravity.BOTTOM,
-                              timeInSecForIosWeb: 1,
-                              backgroundColor: Colors.black,
-                              textColor: Colors.white,
-                              fontSize: 16.0);
+                              if(SharedPrefClass.getDouble(latitude)==0.0){
 
-                        }else{
+                                Fluttertoast.showToast(msg: "Please check your connection!",
+                                    toastLength: Toast.LENGTH_SHORT,
+                                    gravity: ToastGravity.BOTTOM,
+                                    timeInSecForIosWeb: 1,
+                                    backgroundColor: Colors.black,
+                                    textColor: Colors.white,
+                                    fontSize: 16.0);
 
-                          if(getdistance(SharedPrefClass.getDouble(latitude),SharedPrefClass.getDouble(longitude),double.parse(beatnamelist[i].latitude!),double.parse(beatnamelist[i].longitude!))){
+                              }else{
 
-                            SharedPrefClass.setInt(SHOP_ID,beatnamelist[i].retailerID!.toInt());
-                            selectFromCamera(status,beatnamelist[i].toString(),contextt);
+                                print("locationlatitude ${getdistance(SharedPrefClass.getDouble(latitude),SharedPrefClass.getDouble(longitude),double.parse(beatnamelist[i].latitude!),double.parse(beatnamelist[i].longitude!))}");
 
-                          }else{
+                                if(getdistance(SharedPrefClass.getDouble(latitude),SharedPrefClass.getDouble(longitude),double.parse(beatnamelist[i].latitude!),double.parse(beatnamelist[i].longitude!))){
 
-                            setState(() {
-                              _isLoading=false;
-                            });
+                                  SharedPrefClass.setInt(SHOP_ID,beatnamelist[i].retailerID!.toInt());
+                                  selectFromCamera(status,beatnamelist[i].toString(),contextt);
 
-                            Fluttertoast.showToast(msg: "Too far from store!",
-                                toastLength: Toast.LENGTH_SHORT,
-                                gravity: ToastGravity.BOTTOM,
-                                timeInSecForIosWeb: 1,
-                                backgroundColor: Colors.black,
-                                textColor: Colors.white,
-                                fontSize: 16.0);
+                                }else{
 
-                          }
+                                  setState(() {
+                                    _isLoading=false;
+                                  });
 
-                        }
+                                  Fluttertoast.showToast(msg: "Too far from store!",
+                                      toastLength: Toast.LENGTH_SHORT,
+                                      gravity: ToastGravity.BOTTOM,
+                                      timeInSecForIosWeb: 1,
+                                      backgroundColor: Colors.black,
+                                      textColor: Colors.white,
+                                      fontSize: 16.0);
 
-                      },
-                      child: Container(
-                        padding:EdgeInsets.all(10),
-                        child: Text("${beatnamelist[i].retailerName}"),
-                      )
-                  );
-                }
-            ),
-          );
+                                }
+
+                              }
+
+                            },
+                            child: Container(
+                              padding:EdgeInsets.all(10),
+                              child: Text("${beatnamelist[i].retailerName}"),
+                            )
+
+                        );
+                      }
+                  ),
+                )
+              ),
+              onWillPop: () {
+
+                setState(() {
+                  _isLoading = false;
+                });
+
+                return new Future(() => true);
+
+              });
         },
       );
 
@@ -582,7 +782,6 @@ class AttendanceState extends State<Attendance>{
 
       try{
 
-
         int userid=0;
         userid = SharedPrefClass.getInt(USER_ID);
 
@@ -594,7 +793,9 @@ class AttendanceState extends State<Attendance>{
         f = await File(cameraFile.path).copy(newPath);
 
         markattendance(status,beatid,contextt,f!);
-
+        setState(() {
+          _isLoading=false;
+        });
       }catch(e){
 
         print('Failed to pick image: $e');
@@ -612,11 +813,15 @@ class AttendanceState extends State<Attendance>{
       int userid=0;
       userid = SharedPrefClass.getInt(USER_ID);
 
-      var request = await http.MultipartRequest('POST', Uri.parse('${IP_URL}AddSalesPersonAttendance'));
+      var request = await http.MultipartRequest('POST', Uri.parse('${SharedPrefClass.getString(IP_URL)}AddSalesPersonAttendance'));
+
       request.fields['personId']= userid.toString();
       request.fields['status']= status;
       request.fields['latitude']= SharedPrefClass.getDouble(latitude).toString();
       request.fields['longitude']= SharedPrefClass.getDouble(longitude).toString();
+      request.fields['address']= _currentAddress;
+      request.fields['retailerId']= SharedPrefClass.getInt(SHOP_ID).toString();
+      request.fields['simNo']= serielno.toString();
 
       if(file != null){
         request.files.add(await http.MultipartFile.fromPath('image', file.path));
@@ -638,6 +843,8 @@ class AttendanceState extends State<Attendance>{
 
         if(responsedData.contains("DONE")){
 
+          SharedPrefClass.setString(ATT_STATUS,status);
+
           setState(() {
             _isLoading=false;
           });
@@ -647,9 +854,6 @@ class AttendanceState extends State<Attendance>{
               MaterialPageRoute(
                   builder: (context) =>
                       HomeScreen()));
-
-          //  progress.dismiss();
-          // final currentContext = context;
 
         }
 
@@ -669,16 +873,7 @@ class AttendanceState extends State<Attendance>{
 
       print("print image $e");
 
-      // Fluttertoast.showToast(msg: "$e",
-      //     toastLength: Toast.LENGTH_SHORT,
-      //     gravity: ToastGravity.BOTTOM,
-      //     timeInSecForIosWeb: 1,
-      //     backgroundColor: Colors.black,
-      //     textColor: Colors.white,
-      //     fontSize: 16.0);
-
     }
-
 
   }
 

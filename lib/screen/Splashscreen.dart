@@ -2,8 +2,9 @@ import 'dart:async';
 import 'package:promoterapp/config/Common.dart';
 import 'package:promoterapp/screen/HomeScreen.dart';
 import 'package:promoterapp/screen/LoginScreen.dart';
-import 'package:swipeable_page_route/swipeable_page_route.dart';
+import 'package:permission_handler/permission_handler.dart' as Permissionhandler;
 import 'package:flutter/cupertino.dart';
+import 'package:fluttertoast/fluttertoast.dart';
 import 'package:flutter/material.dart';
 import '../util/Shared_pref.dart';
 
@@ -19,58 +20,86 @@ class SplashScreenState extends State<SplashScreen>{
   @override
   void initState() {
     super.initState();
+    print("userid value");
     checkisalreadyloggedin();
   }
 
   @override
   Widget build(BuildContext context) {
+
     return Scaffold(
-      body: Container(
-          child: Column(
-            children: [
-              Expanded(
-                  flex: 2,
-                  child: Container(
-                    child:Image.asset('assets/Images/jivo_logo.png'),
-                  )),
-              CircularProgressIndicator()
-            ],
-          )
+      body: Column(
+        children: [
+
+          Expanded(
+              flex: 2,
+              child: Image.asset('assets/Images/jivo_logo.png')),
+          const CircularProgressIndicator()
+
+        ],
       ),
     );
+
   }
 
   void checkisalreadyloggedin() async{
 
-    int userid;
-    String personName;
+    try{
 
-    personName = SharedPrefClass.getString(PERSON_NAME);
-    userid = SharedPrefClass.getInt(USER_ID);
+      int userid;
+      String personName;
 
-    if(userid!=0 && userid!=null){
+      personName = SharedPrefClass.getString(PERSON_NAME);
+      userid = SharedPrefClass.getInt(USER_ID);
 
-      Timer(Duration(seconds: 3), () =>Navigator.of(context).push(SwipeablePageRoute(
-        builder: (BuildContext context) => HomeScreen(),
-      )));
+      if(userid!=0){
 
-    }else{
+        Timer(const Duration(seconds: 3), () =>  Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) =>
+                HomeScreen(),
+          ),
+        ));
 
-      Timer(Duration(seconds: 3), () =>Navigator.of(context).push(SwipeablePageRoute(
-        builder: (BuildContext context) => LoginScreen())));
+      }else{
 
+        Timer(Duration(seconds: 3), () =>  Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) =>
+                LoginScreen(),
+          ),
+        ));
+
+      }
+
+    }catch(e){
+      print("exceptionne $e");
     }
-
-    //
-    // Timer(const Duration(seconds:3),() {
-    //
-    //   Navigator.of(context).push(SwipeablePageRoute(
-    //     builder: (BuildContext context) => LoginScreen(),
-    //   ));
-    //
-    // });
 
   }
 
+  void calllocationfunction() async{
+
+    var locationstatus = await Permissionhandler.Permission.locationAlways.status;
+
+    if(locationstatus.isGranted == false){
+
+      Fluttertoast.showToast(
+          msg: "Please allow location permission",
+          toastLength: Toast.LENGTH_SHORT,
+          gravity: ToastGravity.BOTTOM,
+          timeInSecForIosWeb: 1,
+          backgroundColor: Colors.black,
+          textColor: Colors.white,
+          fontSize: 16.0);
+
+    }else{
+      await initializeService();
+    }
+
+  }
 
 }
+

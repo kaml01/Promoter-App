@@ -36,10 +36,12 @@ class SharedPrefClass {
 
   static Future<bool> setString(String key, String value) async {
     final p = await _instance;
-    return p.setString(key, value)?? Future.value(false);
+    p.setString(key, value);
+    return true;
   }
 
   static Future<bool> setDouble(String key, double value) async {
+    print("keyout $value");
     final p = await _instance;
     return p.setDouble(key, value)?? Future.value(false);
   }

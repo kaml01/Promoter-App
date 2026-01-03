@@ -1,11 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:promoterapp/provider/DropdownProvider.dart';
-import 'package:promoterapp/provider/PromoterStockProvider.dart';
 import 'package:promoterapp/screen/Splashscreen.dart';
-import 'dart:async';
 import 'package:promoterapp/util/Shared_pref.dart';
+import 'package:promoterapp/view_model/auth_view_model.dart';
 import 'package:provider/provider.dart';
-import 'package:flutter/cupertino.dart';
+import 'dart:async';
 
 Future<void> main() async {
 
@@ -26,8 +25,8 @@ class MyApp extends StatelessWidget {
             create: (_)=> DropdownProvider()
         ),
 
-        ChangeNotifierProvider<PromoterStockProvider>(
-            create: (_)=> PromoterStockProvider()
+        ChangeNotifierProvider<AuthViewModel>(
+            create: (_)=> AuthViewModel()
         ),
 
       ],
@@ -36,7 +35,6 @@ class MyApp extends StatelessWidget {
         home: SplashScreen(),
       ),
     );
-
   }
 
 }

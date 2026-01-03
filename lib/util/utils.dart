@@ -1,0 +1,11 @@
+import 'package:flutter/material.dart';
+import 'package:fluttertoast/fluttertoast.dart';
+
+class Utils{
+
+  static toastMessage(message){
+    Fluttertoast.showToast(msg: message,
+    backgroundColor: Colors.green);
+  }
+
+}

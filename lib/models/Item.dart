@@ -27,7 +27,7 @@ class Item {
         this.piecesPerCase,
         this.itemTypeId,
         this.options,
-        this.imageurl
+        this.imageurl,
   });
 
   Item.fromJson(Map<String, dynamic> json) {

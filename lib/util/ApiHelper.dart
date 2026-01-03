@@ -10,8 +10,10 @@ import 'package:http/http.dart' as http;
 import 'package:promoterapp/screen/HomeScreen.dart';
 import 'package:promoterapp/models/saalesreport.dart';
 import 'package:promoterapp/util/Shared_pref.dart';
+import '../models/proxydetails.dart';
 
-Future<Logindetails> login(context, String user,String pass) async {
+Future<Logindetails>
+login(context, String user,String pass) async {
 
   final progress = ProgressHUD.of(context);
   progress?.show();
@@ -23,9 +25,10 @@ Future<Logindetails> login(context, String user,String pass) async {
   };
 
   var response = await http.post(Uri.parse(
-      '${IP_URL}LoginSalesPerson?user=$user&password=$pass'),
+      '${SharedPrefClass.getString(IP_URL)}LoginSalesPerson3?user=$user&password=$pass'),
       headers: headers);
 
+  print("${SharedPrefClass.getString(IP_URL)}");
   details = Logindetails.fromJson(json.decode(response.body));
 
   try {
@@ -43,7 +46,7 @@ Future<Logindetails> login(context, String user,String pass) async {
             SharedPrefClass.setString(PERSON_NAME, details.personName.toString());
             SharedPrefClass.setString(GROUP, details.group.toString());
             SharedPrefClass.setString(DISTANCE_ALLOWED, details.distanceAllowed.toString());
-
+            
             Navigator.push(
               context,
               MaterialPageRoute(
@@ -63,7 +66,7 @@ Future<Logindetails> login(context, String user,String pass) async {
                 textColor: Colors.white,
                 fontSize: 16.0);
 
-          }
+            }
 
           } catch (e) {
 
@@ -131,7 +134,7 @@ Future<dynamic> getallbeat(String endpoint) async{
 
   int userid=0;
   userid = SharedPrefClass.getInt(USER_ID);
-  var response = await http.get(Uri.parse('$IP_URL$endpoint?id=$userid'));
+  var response = await http.get(Uri.parse('${SharedPrefClass.getString(IP_URL)}$endpoint?id=$userid'));
   final list = jsonDecode(response.body);
 
   List<Shops> beatdata = [];
@@ -147,7 +150,7 @@ Future<List<saalesreport>> getreports(String endpoint,String from,String to) asy
 
   userid = SharedPrefClass.getInt(USER_ID);
 
-  var response = await http.get(Uri.parse('$IP_URL$endpoint?personId=$userid&startdate=$from&enddate=$to'));
+  var response = await http.get(Uri.parse('${SharedPrefClass.getString(IP_URL)}$endpoint?personId=$userid&startdate=$from&enddate=$to'));
   final list = jsonDecode(response.body);
 
   List<saalesreport> beatdata = [];
@@ -169,10 +172,9 @@ Future<Logindetails> getuserdetails(String endpoint) async {
   int userid=0;
 
   Logindetails details;
- // List<Logindetails> details = [];
   userid = SharedPrefClass.getInt(USER_ID);
 
-  var response = await http.post(Uri.parse('$IP_URL$endpoint?userId=$userid'));
+  var response = await http.post(Uri.parse('${SharedPrefClass.getString(IP_URL)}$endpoint?userId=$userid'));
   final list = jsonDecode(response.body);
 
   if (response.statusCode == 200) {
@@ -187,8 +189,17 @@ Future<Logindetails> getuserdetails(String endpoint) async {
     SharedPrefClass.setString(PERSON_TYPE, details.personType.toString());
     SharedPrefClass.setString(PERSON_NAME, details.personName.toString());
     SharedPrefClass.setString(GROUP, details.group.toString());
-    SharedPrefClass.setString(TARGET, details.target.toString());
-    print("${details.target.toString()}");
+    SharedPrefClass.setInt(TARGET, details.target!.toInt());
+    SharedPrefClass.setString(ASSIGNED, details.assignedshops.toString());
+    SharedPrefClass.setString(COVERED, details.coveredshops.toString());
+    SharedPrefClass.setString(PRODUCTIVE, details.productiveshops.toString());
+    SharedPrefClass.setString(CANOLA, details.canola.toString());
+    SharedPrefClass.setString(OLIVE, details.olive.toString());
+    SharedPrefClass.setString(GOLD, details.gold.toString());
+    SharedPrefClass.setString(SUNFLOWER, details.sunflower.toString());
+    SharedPrefClass.setString(SOYABEAN, details.soyabean.toString());
+    SharedPrefClass.setString(COTTONSEED, details.cottonseed.toString());
+
   } else {
 
     throw Exception('Failed to load data');
@@ -203,7 +214,7 @@ Future<dynamic> checklatestversion(String endpoint,version,device) async{
   int userid=0;
   userid = SharedPrefClass.getInt(USER_ID);
 
-  var response = await http.get(Uri.parse('$IP_URL$endpoint?id=$userid&appversion=$version&device=$device'));
+  var response = await http.get(Uri.parse('${SharedPrefClass.getString(IP_URL)}$endpoint?id=$userid&appversion=$version&device=$device'));
   final list = jsonDecode(response.body);
   return list;
 
@@ -214,34 +225,86 @@ Future<dynamic> getSKU(String endpoint) async{
   int userid=0;
   userid = SharedPrefClass.getInt(USER_ID);
 
-  var response = await http.get(Uri.parse('$IP_URL$endpoint?id=$userid'));
+  var response = await http.get(Uri.parse('${SharedPrefClass.getString(IP_URL)}$endpoint?id=$userid'));
   final list = jsonDecode(response.body);
   return list;
 
+}
+
+Future<bool> proxylogin(context,username) async {
+
+  Map<String, String> headers = {
+    'Content-Type': 'application/json',
+  };
+
+  try {
+
+    var response = await http.post(Uri.parse('http://proxy2.jivocanola.com:8080/gm/proxy.json'),headers: headers);
+    List<proxydetails> proxy = [];
+    final list = jsonDecode(response.body);
+    proxy = list.map<proxydetails>((m) => proxydetails.fromJson(Map<String, dynamic>.from(m))).toList();
+    proxyStatus = false;
+
+    if (response.statusCode == 200) {
+
+      for(int i=0;i<proxy.length;i++){
+
+        if(proxy[i].proxy==username){
+
+          proxyStatus = true;
+        }
+
+      }
+
+    } else if(response.statusCode == 408){
+
+      Fluttertoast.showToast(
+          msg: "Please check your internet connection",
+          toastLength: Toast.LENGTH_SHORT,
+          gravity: ToastGravity.BOTTOM,
+          timeInSecForIosWeb: 1,
+          backgroundColor: Colors.black,
+          textColor: Colors.white,
+          fontSize: 16.0);
+
+    }
+
+  } catch (e) {
+
+    Fluttertoast.showToast(
+        msg: "Time out exception",
+        toastLength: Toast.LENGTH_SHORT,
+        gravity: ToastGravity.BOTTOM,
+        timeInSecForIosWeb: 1,
+        backgroundColor: Colors.black,
+        textColor: Colors.white,
+        fontSize: 16.0);
+
+  }
+
+  return proxyStatus;
 }
 
 Future<void> savepromotersale(String salesEntry,String file,String file1,String file2,BuildContext context,progress,dynamiclist) async {
 
   try{
 
-    var request = await http.MultipartRequest('POST', Uri.parse('${IP_URL}SavePromoterSales2'));
+    var request = await http.MultipartRequest('POST', Uri.parse('${SharedPrefClass.getString(IP_URL)}SavePromoterSales2'));
     request.fields['salesEntry']= salesEntry.toString();
     request.files.add(await http.MultipartFile.fromPath('image', file));
 
     if(file1!=""){
-
       request.files.add(await http.MultipartFile.fromPath('image1', file1));
     }
     if(file2!=""){
-
       request.files.add(await http.MultipartFile.fromPath('image2', file2));
     }
 
     var response = await request.send();
     var responsed = await http.Response.fromStream(response);
+
     final responsedData = json.decode(responsed.body);
 
-    print("${responsedData.toString()}");
     if(responsedData.contains("DONE")){
 
       progress.dismiss();
@@ -278,8 +341,7 @@ Future<void> savepromotersale(String salesEntry,String file,String file1,String 
   }catch(e){
 
     progress.dismiss();
-    print("$e");
-
+    print("response exception $e");
     Fluttertoast.showToast(msg: "$e",
         toastLength: Toast.LENGTH_SHORT,
         gravity: ToastGravity.BOTTOM,
@@ -290,4 +352,49 @@ Future<void> savepromotersale(String salesEntry,String file,String file1,String 
 
   }
 
+}
+
+Future<String> savelocation(jsondata) async {
+
+  Map<String, String> headers = {
+    'Content-Type': 'application/json',
+  };
+
+  var response = await http.post(Uri.parse('${SharedPrefClass.getString(IP_URL)}SaveLocationsV2?locations=$jsondata'),
+      headers: headers);
+
+  try {
+
+    if (response.statusCode == 200) {
+
+      // Fluttertoast.showToast(
+      //   msg: "Successfully logged in",
+      //   toastLength: Toast.LENGTH_SHORT,
+      //   gravity: ToastGravity.BOTTOM,
+      //   timeInSecForIosWeb: 1,
+      //   backgroundColor: Colors.black,
+      //   textColor: Colors.white,
+      //   fontSize: 16.0,
+      // );
+
+
+    } else {
+
+      // Fluttertoast.showToast(
+      //   msg: "Please check your userid and password",
+      //   toastLength: Toast.LENGTH_SHORT,
+      //   gravity: ToastGravity.BOTTOM,
+      //   timeInSecForIosWeb: 1,
+      //   backgroundColor: Colors.black,
+      //   textColor: Colors.white,
+      //   fontSize: 16.0,
+      // );
+
+    }
+
+  }catch(e){
+
+  }
+  print("responsebody${response.body.toString()}");
+  return response.body.toString();
 }

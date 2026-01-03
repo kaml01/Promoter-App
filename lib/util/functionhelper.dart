@@ -1,24 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:promoterapp/config/Common.dart';
-import 'package:promoterapp/models/Shops.dart';
 import 'package:battery_plus/battery_plus.dart';
-import 'package:promoterapp/util/ApiHelper.dart';
 import 'package:promoterapp/util/Shared_pref.dart';
-import 'package:fluttertoast/fluttertoast.dart';
 import 'package:permission_handler/permission_handler.dart' as Permissionhandler;
 import 'dart:io';
-import 'package:path/path.dart' as path;
 import 'package:latlong2/latlong.dart';
 import 'package:intl/intl.dart';
 import 'package:geocoding/geocoding.dart' as Geocoding;
 import 'package:geolocator/geolocator.dart';
 
-import '../screen/LoginScreen.dart';
-
 void getAttendanceStatus() async {
 
   String attStatus="";
-
   attStatus = SharedPrefClass.getString(ATT_STATUS);
 
   if(attStatus==""){
@@ -126,6 +119,13 @@ Future<bool> checkNetwork() async {
   }
 
   return isConnected;
+}
+
+String getcurrentdatewithtime(){
+
+  String date =DateFormat('MM-dd-yyyy HH:mm:ss').format(DateTime.now());
+  return date;
+
 }
 
 // Future<void> showdialogg(String status,BuildContext context, List<Shops> listdata,progress) async {
@@ -317,26 +317,21 @@ Future<bool> checkNetwork() async {
 Future<void> askpermission() async {
 
   var camerastatus = await Permissionhandler.Permission.camera.status;
-  var locationstatus = await Permissionhandler.Permission.location.status;
+  var locationstatus = await Permissionhandler.Permission.locationAlways.status;
+  var readphonestate = await Permissionhandler.Permission.phone;
 
-  if (camerastatus.isGranted == false && locationstatus.isGranted == false) {
+  if (camerastatus.isGranted == true && locationstatus.isGranted == false) {
+
+    Geolocator.openAppSettings();
+
+  } else if (camerastatus.isGranted == false && locationstatus.isGranted == false) {
 
     Map<Permissionhandler.Permission, Permissionhandler.PermissionStatus> statuses = await [
       Permissionhandler.Permission.location,
-      Permissionhandler.Permission.camera
+      Permissionhandler.Permission.camera,
+      Permissionhandler.Permission.phone
     ].request();
 
-  }else{
-
-    if(camerastatus.isGranted==true){
-      cstatus = true;
-      print("cstatus$cstatus");
-    }
-
-    if(locationstatus.isGranted == true){
-      lstatus = true;
-      print("lstatus$lstatus");
-    }
   }
 
 }
@@ -364,14 +359,23 @@ bool getdistance(lat1 ,lng1, lat2, lng2){
 
   bool isallowed = false;
   var distance = Distance();
-  final totaldist = distance(LatLng(lat1,lng2), LatLng(lat2,lng2));
 
+ // final totaldist = distance(LatLng(lat1,lng2), LatLng(lat2,lng2));
+  final totaldist = Geolocator.distanceBetween(lat1,lng1,lat2,lng2);
+  print("total distance $totaldist");
   int disallow = SharedPrefClass.getInt(DISTANCE_ALLOWED);
+  print("DISTANCE ALLOWED $disallow");
 
   if(disallow > totaldist){
+
+    print("$disallow");
     isallowed = true;
+
   }else{
+
+    print("$totaldist");
     isallowed = false;
+
   }
 
   return isallowed;
@@ -449,13 +453,21 @@ void getCurrentPosition(context) async {
   if (!hasPermission) return;
 
   await Geolocator.getCurrentPosition(desiredAccuracy: LocationAccuracy.high)
-      .then((Position position) {
+      .then((Position position) async {
     currentPosition = position;
 
-    SharedPrefClass.setDouble(latitude, position.latitude);
-    SharedPrefClass.setDouble(longitude, position.longitude);
+    if(position.latitude==0.0){
+      print("current location is null");
+      currentPosition = await Geolocator.getLastKnownPosition();
+      print("current location is null catch ${currentPosition!.latitude}");
+    }
 
-   //setState(() => currentPosition = position);
+    SharedPrefClass.setDouble(latitude, currentPosition!.latitude);
+    SharedPrefClass.setDouble(longitude, currentPosition!.longitude);
+    // SharedPrefClass.setDouble(latitude, position.latitude);
+    // SharedPrefClass.setDouble(longitude, position.longitude);
+
+    //setState(() => currentPosition = position);
     _getAddressFromLatLng(currentPosition!);
 
   }).catchError((e) {
@@ -469,17 +481,36 @@ Future<void> _getAddressFromLatLng(Position position) async {
   await Geocoding.placemarkFromCoordinates(
       currentPosition!.latitude, currentPosition!.longitude)
       .then((List<Geocoding.Placemark> placemarks) {
-    Geocoding.Placemark place = placemarks[0];
 
-    // setState(() {
-    //
-    //   _currentAddress = '${place.street}, ${place.subLocality}, ${place.subAdministrativeArea}, ${place.postalCode}';
-    //
-    // });
+    if (placemarks != null && placemarks.isNotEmpty) {
+
+      Geocoding.Placemark place = placemarks[0];
+      // address = '${place.street}, ${place.subLocality}, ${place
+      //     .subAdministrativeArea}, ${place.postalCode}';
+
+    }else{
+      print("unknown address");
+    }
 
   }).catchError((e) {
     debugPrint(e);
   });
+
+  //
+  // await Geocoding.placemarkFromCoordinates(
+  //     currentPosition!.latitude, currentPosition!.longitude)
+  //     .then((List<Geocoding.Placemark> placemarks) {
+  //   Geocoding.Placemark place = placemarks[0];
+  //
+  //   // setState(() {
+  //   //
+  //   //   _currentAddress = '${place.street}, ${place.subLocality}, ${place.subAdministrativeArea}, ${place.postalCode}';
+  //   //
+  //   // });
+  //
+  // }).catchError((e) {
+  //   debugPrint(e);
+  // });
 
 }
 
