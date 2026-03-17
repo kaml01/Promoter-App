@@ -16,9 +16,10 @@ def flutterVersionCode = localProperties.getProperty('flutter.versionCode') ?: '
 def flutterVersionName = localProperties.getProperty('flutter.versionName') ?: '26.0'
 
 android {
+
     namespace "jivo.promoters"
-    compileSdkVersion flutter.compileSdkVersion
-    ndkVersion flutter.ndkVersion
+    compileSdk 36
+    ndkVersion "27.0.12077973"
 
     compileOptions {
         sourceCompatibility JavaVersion.VERSION_1_8
@@ -37,7 +38,7 @@ android {
     defaultConfig {
         applicationId "jivo.promoters"
         minSdkVersion flutter.minSdkVersion
-        targetSdkVersion 34
+        targetSdk 36
         versionCode flutterVersionCode.toInteger()
         versionName flutterVersionName
     }

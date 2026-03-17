@@ -5,7 +5,6 @@ import 'package:location/location.dart';
 import 'package:permission_handler/permission_handler.dart' as Permissionhandler;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:promoterapp/util/ApiHelper.dart';
-
 import '../config/Common.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -16,6 +15,7 @@ class LoginScreen extends StatefulWidget {
 }
 
 class _LoginScreenState extends State<LoginScreen> {
+
   StreamSubscription? connection;
   bool isoffline = false;
   TextEditingController usercontroller = TextEditingController();
@@ -26,7 +26,6 @@ class _LoginScreenState extends State<LoginScreen> {
   // Brand Colors
   static const Color primaryGreen = Color(0xFF063A06);
   static const Color lightGreen = Color(0xFF0A5C0A);
-  static const Color paleGreen = Color(0xFFE8F5E9);
 
   void checkurlstatus(context) async {
     try {
@@ -41,10 +40,12 @@ class _LoginScreenState extends State<LoginScreen> {
   void updateurl(status, context) async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     if (status == true) {
-      prefs.setString(IP_URL, "http://103.89.44.240:90/AndroidServer/");
+      prefs.setString(IP_URL, "http://dsr.jivocanola.com/AndroidServer/");
+      // prefs.setString(IP_URL, "http://103.89.45.75:90/AndroidServer/");
       login(context, usercontroller.text, passcontroller.text);
     } else {
-      prefs.setString(IP_URL, "http://103.89.44.240:90/AndroidServer/");
+      prefs.setString(IP_URL, "http://dsr.jivocanola.com/AndroidServer/");
+      // prefs.setString(IP_URL, "http://103.89.45.75:90/AndroidServer/");
       login(context, usercontroller.text, passcontroller.text);
     }
   }

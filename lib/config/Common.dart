@@ -1,11 +1,4 @@
-//const String IP_URL="http://172.99.188.96/AndroidServer/";
-
-//const String IP_URL="http://dsr.jivocanola.com/AndroidServer/";
-// ,const String IP_URL="http://192.168.1.249:90/AndroidServer/";
 bool proxyStatus = false;
-//static var IP_URL="http://172.99.188.96/AndroidServer/";
-//static var IP_URL = "http://192.168.1.249:9090/AndroidServer/";
-
 const String IP_URL = "ip_url" ;
 
 const String USER_ID = "userId";

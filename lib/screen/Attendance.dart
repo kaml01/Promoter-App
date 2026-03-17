@@ -20,7 +20,6 @@ import 'dart:convert';
 import 'dart:async';
 import 'dart:io';
 
-
 class Attendance extends StatefulWidget{
 
     @override
@@ -98,65 +97,71 @@ class AttendanceState extends State<Attendance>{
 
   Future<void> getCurrentPosition(context) async {
     final hasPermission = await _handleLocationPermission(context);
-    if (!hasPermission) return;
+    if (!hasPermission) {
+      setState(() => _isLoading = false);
+      return;
+    }
 
     try {
-      geo.Position position = await geo.Geolocator.getCurrentPosition(
-          desiredAccuracy: geo.LocationAccuracy.high
-      );
+      geo.Position? position;
 
-      if (position.latitude == 0.0) {
-        position = (await geo.Geolocator.getLastKnownPosition())!;
+      // 1. Try to get the fresh location with a strict timeout (e.g., 6 seconds)
+      try {
+        position = await geo.Geolocator.getCurrentPosition(
+          desiredAccuracy: geo.LocationAccuracy.high,
+          timeLimit: const Duration(seconds: 6),
+        );
+      } catch (e) {
+        debugPrint("Fresh location timed out, trying last known...");
       }
 
-      currentPosition = position;
-      await SharedPrefClass.setDouble(latitude, position.latitude);
-      await SharedPrefClass.setDouble(longitude, position.longitude);
+      // 2. If fresh location failed or timed out, pick the last known location
+      if (position == null) {
+        position = await geo.Geolocator.getLastKnownPosition();
+      }
 
-      print("latitude ${SharedPrefClass.getDouble(latitude)}");
+      // 3. If we finally have a position (either fresh or last known)
+      if (position != null) {
+        currentPosition = position;
+        await SharedPrefClass.setDouble(latitude, position.latitude);
+        await SharedPrefClass.setDouble(longitude, position.longitude);
 
-      await _getAddressFromLatLng(position);
+        // Attempt address lookup, but don't let it stop the app
+        await _getAddressFromLatLng(position);
+      } else {
+        Fluttertoast.showToast(msg: "Location unavailable. Move to an open area.");
+      }
+
     } catch (e) {
-      debugPrint('Location error: $e');
+      debugPrint('General Location Error: $e');
+    } finally {
+      // 4. Crucial: Stop the loading spinner no matter what happened
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
     }
   }
 
   Future<void> _getAddressFromLatLng(geo.Position position) async {
+    try {
+      // Set a timeout for the address lookup
+      await Geocoding.placemarkFromCoordinates(
+          position.latitude, position.longitude)
+          .timeout(const Duration(seconds: 5)) // Give it only 5 seconds
+          .then((List<Geocoding.Placemark> placemarks) {
 
-    await Geocoding.placemarkFromCoordinates(
-        currentPosition!.latitude, currentPosition!.longitude)
-        .then((List<Geocoding.Placemark> placemarks) {
-
-      if (placemarks != null && placemarks.isNotEmpty) {
-
-        Geocoding.Placemark place = placemarks[0];
-        _currentAddress = '${place.street}, ${place.subLocality}, ${place
-            .subAdministrativeArea}, ${place.postalCode}';
-
-      }else{
-        print("unknown address");
-      }
-
-    }).catchError((e) {
-      debugPrint(e);
-    });
-
-    //
-    // await Geocoding.placemarkFromCoordinates(
-    //     currentPosition!.latitude, currentPosition!.longitude)
-    //     .then((List<Geocoding.Placemark> placemarks) {
-    //   Geocoding.Placemark place = placemarks[0];
-    //
-    //   // setState(() {
-    //   //
-    //   //   _currentAddress = '${place.street}, ${place.subLocality}, ${place.subAdministrativeArea}, ${place.postalCode}';
-    //   //
-    //   // });
-    //
-    // }).catchError((e) {
-    //   debugPrint(e);
-    // });
-
+        if (placemarks.isNotEmpty) {
+          Geocoding.Placemark place = placemarks[0];
+          _currentAddress = '${place.street}, ${place.subLocality}';
+        }
+      });
+    } catch (e) {
+      // If internet is too slow, just use coordinates as the address
+      _currentAddress = "Address not available (Low Network)";
+      debugPrint("Geocoding failed, but we have the Lat/Long!");
+    }
   }
 
   @override
@@ -164,7 +169,6 @@ class AttendanceState extends State<Attendance>{
     timer?.cancel();
     super.dispose();
   }
-
 
   Future<void> initMobileNumberState() async {
 
@@ -341,259 +345,110 @@ class AttendanceState extends State<Attendance>{
 
   @override
   Widget build(BuildContext ctx) {
-
-    return WillPopScope(
-        child: Scaffold(
-            appBar: AppBar(
-                backgroundColor: Colors.white,
-                leading: GestureDetector(
-                  onTap: (){
-
-                    Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                            builder: (context) =>
-                                HomeScreen()));
-
-                  },
-                  child: const Icon(Icons.arrow_back,color:Color(0xFF063A06)),
-                ),
-                title: const Text("My Attendance",
-                    style: TextStyle(color:Color(0xFF063A06),fontWeight: FontWeight.w400)
-                )
+    return Scaffold(
+      backgroundColor: Colors.grey[100], // Light background for contrast
+      appBar: AppBar(
+        elevation: 0,
+        backgroundColor: const Color(0xFF063A06), // Dark green theme
+        title: const Text("Daily Attendance", style: TextStyle(color: Colors.white)),
+        centerTitle: true,
+      ),
+      body: _isLoading
+          ? const Center(child: CircularProgressIndicator(color: Color(0xFF063A06)))
+          : SingleChildScrollView(
+        child: Column(
+          children: [
+            _buildLocationHeader(), // Shows current status
+            Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: GridView.count(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                crossAxisCount: 2,
+                crossAxisSpacing: 15,
+                mainAxisSpacing: 15,
+                children: [
+                  _buildActionCard("PRESENT", Icons.fingerprint, present ? const Color(0xFF063A06) : Colors.grey, penabled, "P"),
+                  _buildActionCard("MID DAY", Icons.wb_sunny, hd ? Colors.orange[800]! : Colors.grey, hdenabled, "NOON"),
+                  _buildActionCard("END OF DAY", Icons.home_work, eod ? Colors.redAccent : Colors.grey, eodenabled, "EOD"),
+                  _buildActionCard("WEEK OFF", Icons.calendar_today, wo ? Colors.blue : Colors.grey, woenabled, "WO"),
+                  _buildActionCard("ABSENT", Icons.person_off, ab ? Colors.black87 : Colors.grey, abenabled, "A"),
+                ],
+              ),
             ),
-            body:_isLoading?const Center(
-                child:CircularProgressIndicator()
-            ):
-            Scaffold(
-                body: SizedBox(
-                  width: double.infinity,
-                  height: double.infinity,
-                  child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      crossAxisAlignment: CrossAxisAlignment.center,
-                      children: [
-
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          crossAxisAlignment: CrossAxisAlignment.center,
-                          children:[
-
-                            GestureDetector(
-                              onTap: penabled? (){
-
-                                if(cstatus==false){
-
-                                  Fluttertoast.showToast(msg: "Please allow camera permission");
-
-                                }else if(lstatus ==false){
-
-                                  Fluttertoast.showToast(msg: "Please allow location permission");
-
-                                }else{
-
-                                  // setState(() {
-                                  //   _isLoading=true;
-                                  // });
-
-                                  showdialogg("P",ctx,shopdata);
-
-                                }
-
-                              }:null,
-                              child:Container(
-                                height: 100,
-                                width: 100,
-                                margin: const EdgeInsets.all(10),
-                                decoration: BoxDecoration(
-                                  color:  present ? const Color(0xff0e0e0e) : Colors.grey,
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                                child: const Center(
-                                    child:Text(
-                                      "PRESENT",
-                                      style: TextStyle(color:Colors.white),
-                                    )
-                                ),
-                              ),
-                            ),
-
-                            GestureDetector(
-
-                              onTap: eodenabled?(){
-
-                                setState(() {
-                                  _isLoading=true;
-                                });
-
-                                showdialogg("EOD",ctx, shopdata);
-
-                              }:null,
-
-                              child:Container(
-                                height: 100,
-                                width: 100,
-                                margin: EdgeInsets.all(10),
-                                decoration: BoxDecoration(
-                                  color: eod ? const Color(0xff0e0e0e):Colors.grey,
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                                child: const Center(
-                                    child:Text("END OF DAY",style: TextStyle(color: Colors.white),)
-                                ),
-                              ),
-
-                            ),
-
-                          ],
-                        ),
-
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          crossAxisAlignment: CrossAxisAlignment.center,
-                          children:[
-
-                            GestureDetector(
-                              onTap: hdenabled?(){
-
-                                if(cstatus==false){
-
-                                  Fluttertoast.showToast(msg: "Please allow camera permission");
-
-                                }else if(lstatus ==false){
-
-                                  Fluttertoast.showToast(msg: "Please allow location permission");
-
-                                }else{
-                                  setState(() {
-                                    _isLoading=true;
-                                  });
-
-                                  showdialogg("NOON",ctx,shopdata);
-
-                                }
-
-                              }:null,
-
-                              child: Container(
-                                height: 100,
-                                width: 100,
-                                margin: EdgeInsets.all(10),
-                                decoration: BoxDecoration(
-                                  color: hd ?  const Color(0xff0e0e0e) : Colors.grey,
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                                child: const Center(
-                                    child: Text("MID DAY",style: TextStyle(
-                                        color: Colors.white
-                                    ),
-                                    )
-                                ),
-                              ),
-                            ),
-
-                            GestureDetector(
-                              onTap:woenabled? (){
-
-                                setState(() {
-                                  _isLoading=true;
-                                });
-                                showdialogg("WO",context,shopdata);
-
-                                // try{
-                                //   Navigator.push(
-                                //       context,
-                                //       MaterialPageRoute(
-                                //           builder: (ctx) =>
-                                //               HomeScreen()));
-                                // }catch(e){
-                                //   print("print image $e");
-                                // }
-                              }:null,
-                              child:Container(
-                                height: 100,
-                                width: 100,
-                                margin: const EdgeInsets.all(10),
-                                decoration: BoxDecoration(
-                                  color: wo ?  const Color(0xff0e0e0e):Colors.grey,
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                                child: const Center(
-                                    child: Text("WEEK OFF",style: TextStyle(
-                                        color: Colors.white
-                                    ),
-                                    )
-                                ),
-                              ),
-                            )
-
-                          ],
-
-                        ),
-
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          crossAxisAlignment: CrossAxisAlignment.center,
-                          children: [
-
-                            GestureDetector(
-                              onTap:abenabled?(){
-
-                                setState(() {
-                                  _isLoading=true;
-                                });
-
-                                showdialogg("A",ctx,shopdata);
-
-                              }:null,
-                              child: Container(
-                                height: 100,
-                                width: 100,
-                                margin: EdgeInsets.all(10),
-                                decoration: BoxDecoration(
-                                  color: ab ?  const Color(0xff0e0e0e) : Colors.grey,
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                                child: const Center(
-                                    child: Text("ABSENT",style: TextStyle(
-                                        color: Colors.white
-                                    ),
-                                    )
-                                ),
-                              ),
-                            )
-
-                          ],
-                        )
-
-                     ]
-
-                  ),
-                )
-            )
+          ],
         ),
-        onWillPop: () {
-
-          Navigator.pop(context);
-          Navigator.push(
-              context,
-              MaterialPageRoute(
-                  builder: (contextt) =>
-                      HomeScreen()
-              )
-          );
-
-          return new Future(() => true);
-
-        }
+      ),
     );
+  }
 
+  Widget _buildLocationHeader() {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: const BoxDecoration(
+        color: Color(0xFF063A06),
+        borderRadius: BorderRadius.only(bottomLeft: Radius.circular(30), bottomRight: Radius.circular(30)),
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.location_on, color: Colors.white, size: 40),
+          const SizedBox(width: 15),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text("Current Location", style: TextStyle(color: Colors.white70, fontSize: 12)),
+                Text(
+                  _currentAddress.isEmpty ? "Fetching location..." : _currentAddress,
+                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
+            ),
+          ),
+          IconButton(
+            icon: const Icon(Icons.refresh, color: Colors.white),
+            onPressed: () => getCurrentPosition(context),
+          )
+        ],
+      ),
+    );
+  }
+
+// Clean, modern card-style buttons
+  Widget _buildActionCard(String title, IconData icon, Color color, bool enabled, String status) {
+    return GestureDetector(
+      onTap: enabled ? () => showdialogg(status, context, shopdata) : null,
+      child: AnimatedOpacity(
+        duration: const Duration(milliseconds: 300),
+        opacity: enabled ? 1.0 : 0.5,
+        child: Container(
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(20),
+            boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, 5))],
+          ),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              CircleAvatar(
+                backgroundColor: color.withOpacity(0.1),
+                child: Icon(icon, color: color),
+              ),
+              const SizedBox(height: 12),
+              Text(title, style: TextStyle(fontWeight: FontWeight.bold, color: color, fontSize: 13)),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 
   Future<void> showdialogg(String status,BuildContext ctx, List<Shops> listdata) async {
 
     return showDialog(
-      
+
         barrierDismissible: false,
         context: context,
         builder:(BuildContext context) {
@@ -609,7 +464,6 @@ class AttendanceState extends State<Attendance>{
                   setState(() {
                     _isLoading = false;
                   })
-                 // progress!.dismiss()
                 },
                 child: const Text('No'),
               ),
@@ -632,11 +486,9 @@ class AttendanceState extends State<Attendance>{
               ),
 
             ],
-
           );
 
         }
-      
     );
 
   }
@@ -647,7 +499,6 @@ class AttendanceState extends State<Attendance>{
 
     if(beatId==0 || beatId ==-1 ){
 
-      //showbeat(status,context,beatnamelist,beatIdlist);
       showbeatt(status,context,beatnamelist);
 
     }else{

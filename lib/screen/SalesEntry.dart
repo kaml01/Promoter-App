@@ -20,7 +20,7 @@ import 'package:fluttertoast/fluttertoast.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:path/path.dart' as path;
 import 'package:promoterapp/provider/DropdownProvider.dart';
-import 'package:sim_data_plus/sim_data.dart';
+import 'package:sim_card_code/sim_card_code.dart';
 import 'package:flutter/material.dart';
 import 'dart:convert';
 import 'dart:io';
@@ -35,7 +35,7 @@ class SalesEntry  extends StatefulWidget{
 
 }
 
-class SalesEntryState extends State<SalesEntry>{
+class SalesEntryState extends State<SalesEntry> {
 
   Position? currentPosition;
   String dt = "";
@@ -49,7 +49,7 @@ class SalesEntryState extends State<SalesEntry>{
   String _currentAddress="";
   List<Item> itemdata = [];
   List allitems = [];
-  int _counter = 0,idx=0;
+  int idx=0;
   File? cameraFile, cameraFile1, cameraFile2, f, f1, f2;
   List<Shops> shopdata = [];
   bool _isLoading = false;
@@ -111,22 +111,13 @@ class SalesEntryState extends State<SalesEntry>{
   }
 
   void printSimCardsData() async {
-
-    print('printSimCardsData');
-
     try {
-
-      SimData simData = await SimDataPlugin.getSimData();
-      print('printSimCardsData2');
-      // for (var s in simData.cards) {
-      serielno = simData.cards[0].serialNumber;
-
+      final serialNumber = await SimCardManager.simSerialNumber;
+      serielno = serialNumber;
+      print('Serial number: $serialNumber');
     } catch (e) {
-
-      print('Serial number: ${e}');
-      // debugPrint("error! code: ${e.code} - message: ${e.message}");
+      print('Error: $e');
     }
-
   }
 
   getofflinedata() async{
@@ -279,9 +270,7 @@ class SalesEntryState extends State<SalesEntry>{
       _getAddressFromLatLng(currentPosition!);
 
     }).catchError((e) async {
-      //print("current location is null catch");
       currentPosition = await Geolocator.getLastKnownPosition();
-      //print("current location is null catch ${currentPosition!.latitude}");
       debugPrint(e);
     });
 
@@ -340,269 +329,326 @@ class SalesEntryState extends State<SalesEntry>{
     return true;
   }
 
-  @override
-  Widget build(BuildContext context)  {
+  Widget _buildAttendanceWarning() {
+    return Scaffold(
+      backgroundColor: Colors.white,
+      body: Center(
+        // padding: const EdgeInsets.all(30.0),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            // A large, clear icon to show action is required
+            Container(
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: Colors.orange.withOpacity(0.1),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(
+                Icons.lock_clock_outlined,
+                size: 80,
+                color: Colors.orange,
+              ),
+            ),
+            const SizedBox(height: 24),
+            const Text(
+              "Attendance Required",
+              style: TextStyle(
+                fontSize: 22,
+                fontWeight: FontWeight.bold,
+                color: Color(0xFF063A06),
+              ),
+            ),
+            const SizedBox(height: 12),
+            const Text(
+              "You haven't marked your attendance yet. Please mark 'Present' to start entering sales data.",
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 16,
+                color: Colors.grey,
+              ),
+            ),
+            const SizedBox(height: 32),
 
-    final dropdownOptionsProvider = Provider.of<DropdownProvider>(context);
-    return WillPopScope(
-        child: Scaffold(
-
-            appBar: AppBar(
-                backgroundColor: Colors.white,
-                leading: GestureDetector(
-                  onTap: (){
-
-                    dynamicList.clear();
-
-                    Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                            builder: (context) =>
-                                HomeScreen()));
-
-                  },
-                  child: const Icon(Icons.arrow_back,color:Color(0xFF063A06)),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => Attendance()),
+                  );
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF063A06),
+                  padding: const EdgeInsets.symmetric(vertical: 15),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
                 ),
-                actions: [
+                child: const Text(
+                  "Go to Attendance",
+                  style: TextStyle(fontSize: 16, color: Colors.white),
+                ),
+              ),
+            ),
+            const SizedBox(height: 12),
 
-                  AnimatedOpacity(
-                    opacity: _counter != 0 ? 1 : 0,
-                    duration: Duration(milliseconds: 500),
-                    child: const Text(
-                      '0',
-                      style: TextStyle(
-                        fontSize: 16.0,
-                        color: Colors.black,
-                      ),
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text(
+                "Back to Home",
+                style: TextStyle(color: Colors.grey),
+              ),
+            ),
+
+          ],
+        ),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final dropdownOptionsProvider = Provider.of<DropdownProvider>(context);    if (attstatus != "P" && attstatus != "NOON") {
+      return _buildAttendanceWarning();
+    }
+
+    return ProgressHUD(
+      child: Builder(
+        builder: (hudContext) {
+          return Scaffold(
+            backgroundColor: Colors.grey[50],
+            appBar: AppBar(
+              elevation: 0,
+              backgroundColor: const Color(0xFF063A06),
+              foregroundColor: Colors.white,
+              title: const Text(
+                  "Sales Entry",
+                  style: TextStyle(color: Colors.white, fontWeight: FontWeight.w400)
+              ),
+              iconTheme: const IconThemeData(color: Colors.white),
+              leading: IconButton(
+                icon: const Icon(Icons.arrow_back),
+                onPressed: () {
+                  setState(() {
+                    dynamicList.clear();
+                    idx = 0;
+                  });
+                  Navigator.pop(context);
+                },
+              ),
+              actions: [
+                // The Save Button
+                Padding(
+                  padding: const EdgeInsets.only(right: 8.0),
+                  child: TextButton.icon(
+                    onPressed: () {
+                      final progress = ProgressHUD.of(hudContext);
+                      save(dropdownOptionsProvider, context, progress);
+                    },
+                    icon: const Icon(Icons.cloud_upload_outlined, color: Colors.white, size: 20),
+                    label: const Text(
+                      "SAVE",
+                      style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
                     ),
                   ),
-
-                ],
-                title: const Text("Sales Entry", style: TextStyle(color:Color(0xFF063A06),fontWeight: FontWeight.w400))
-            ),
-            body: attstatus=="P" || attstatus=="NOON"? ProgressHUD(
-                child:Builder(
-                  builder:(ctx)=>
-
-                      Scaffold(
-                        body: Column(
-                          children: [
-
-                            Container(
-                              height: 50,
-                              color: Colors.black12,
-                              child: Row(
-                                children: [
-
-                                  Expanded(
-                                      flex: 1,
-                                      child:GestureDetector(
-
-                                          onTap: (){
-
-                                            final progress = ProgressHUD.of(ctx);
-                                            progress?.show();
-
-                                            showskudialog(context,allitems,progress);
-
-                                          },
-
-                                          child:Container(
-                                            child:  const Center(
-                                              child:Text("+",style: TextStyle(
-                                                  fontSize: 25
-                                              ),
-                                              ),
-                                            ),
-                                          )
-
-                                      )
-                                  ),
-
-                                  Expanded(
-                                      child:GestureDetector(
-
-                                        onTap: (){
-                                          getdate(context).then((value) => {
-                                            setState((){
-                                              dt =value;
-                                            })
-                                          });
-                                        },
-
-                                        child: Container(
-                                          child: Center(
-                                            child: Text(dt == ""?"Date" :dt,style: TextStyle(fontSize: 16),
-                                            ),
-                                          ),
-                                        ),
-
-                                      )
-                                  ),
-
-                                  Expanded(
-                                      flex: 1,
-                                      child: GestureDetector(
-
-                                          onTap: (){
-
-                                            final progress  = ProgressHUD.of(ctx);
-                                           // if(currentPosition?.latitude==0.0 || currentPosition?.latitude == null){
-                                              save(dropdownOptionsProvider,context,progress);
-
-                                            // }else{
-                                            //   Fluttertoast.showToast(msg: "Please turn on location");
-                                            // }
-
-                                          },
-
-                                          child:const Center(
-                                            child:Text("SAVE",style: TextStyle(
-                                                fontSize: 16
-                                            ),
-                                            ),
-                                          )
-                                      )
-                                  ),
-
-                                ],
-                              ),
-                            ),
-
-                            Row(
-                              children: [
-
-                                Expanded(
-                                  flex: 1,
-                                  child: InkWell(
-                                      onTap: (){
-                                        selectFromCamera("image");
-                                      },
-                                      child: Container(
-                                        padding: EdgeInsets.all(5),
-                                        height: 100,
-                                        child:Center(
-                                            child:cameraFile==null?Image.asset('assets/Images/plus.png',height: 15):Image.file(File(cameraFile!.path),width: MediaQuery.of(context).size.width)
-                                        )
-                                      )
-                                  ),
-                                ),
-
-                                Expanded(
-                                    flex: 1,
-                                    child:InkWell(
-                                      onTap: (){
-                                        selectFromCamera("image1");
-                                      },
-                                      child: Container(
-                                        padding: EdgeInsets.all(5),
-                                        height: 100,
-                                        child:Center(
-                                            child:cameraFile1==null?Image.asset('assets/Images/plus.png',height: 15):Image.file(File(cameraFile1!.path))
-
-                                        )
-                                      ),
-                                    )
-                                ),
-
-                                Expanded(
-                                    flex: 1,
-                                    child:InkWell(
-                                      onTap: (){
-                                        selectFromCamera("image2");
-                                      },
-                                      child: Container(
-                                        padding: EdgeInsets.all(5),
-                                        height: 100,
-                                        child: Center(
-                                            child:cameraFile1==null?Image.asset('assets/Images/plus.png',height: 15):Image.file(File(cameraFile1!.path))
-                                        )
-                                      ),
-                                    )
-                                ),
-
-                              ],
-                            ),
-
-                            Expanded(
-                              child: ListView.builder(
-                                  shrinkWrap: true,
-                                  itemCount: dynamicList.length,
-                                  itemBuilder: (_, index) =>
-                                  dynamicList[index]
-                              ),
-                            ),
-
-                         ],
-                      ),
-                   ),
-
-                )
-            ):AlertDialog(
-              content:Wrap(
-                children: [
-
-                  Image.asset('assets/Images/complain.png',width: 40,height: 40,),
-                  Container(
-                    margin: EdgeInsets.all(10),
-                    child:Text("First Mark Present"),
-                  )
-
-                ],
-              ),
-              actions: <Widget>[
-
-                TextButton(
-                  onPressed: () => {
-
-                    Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                            builder: (context) =>
-                                HomeScreen()))
-
-                  },
-                  child: const Text('Cancel'),
                 ),
-
-                TextButton(
-                  onPressed: () =>{
-
-                    Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                            builder: (context) =>
-                                Attendance()))
-
-                  },
-                  child: const Text('Ok'),
-                ),
-
               ],
+            ),
+            body: Column(
+              children: [
+                _buildInfoCard(),
+                _buildImageSelectors(),
+                _buildDateSelector(),
+                const Divider(height: 1),
+                Expanded(
+                  child: dynamicList.isEmpty
+                      ? _buildEmptyState(hudContext) // Pass hudContext here
+                      : ListView.builder(
+                    padding: const EdgeInsets.all(10),
+                    itemCount: dynamicList.length,
+                    itemBuilder: (_, index) => dynamicList[index],
+                  ),
+                ),
+              ],
+            ),
+            floatingActionButton: FloatingActionButton(
+              backgroundColor: const Color(0xFF063A06),
+              child: const Icon(Icons.add, color: Colors.white),
+              onPressed: () {
 
-            )
+                final progress = ProgressHUD.of(hudContext);
+                showskudialog(context, allitems, progress);
 
-        ),
-        onWillPop:() async{
-          dynamicList.clear();
-
-          Navigator.push(
-              context,
-              MaterialPageRoute(
-                  builder: (contextt) =>
-                      HomeScreen()));
-
-          return new Future(() => true);
-
-        }
+              },
+            ),
+          );
+        },
+      ),
     );
 
   }
 
+  Widget _buildEmptyState(BuildContext ctx) {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+
+          Icon(Icons.inventory_2_outlined, size: 80, color: Colors.grey[300]),
+
+          const SizedBox(height: 10),
+
+          const Text(
+            "No SKUs added yet",
+            style: TextStyle(color: Colors.grey, fontWeight: FontWeight.bold),
+          ),
+
+          const SizedBox(height: 20),
+
+          ElevatedButton.icon(
+            onPressed: () {
+              final progress = ProgressHUD.of(ctx);
+              showskudialog(context, allitems, progress);
+            },
+            icon: const Icon(Icons.add),
+            label: const Text("Add First Item"),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF063A06),
+              foregroundColor: Colors.white,
+            ),
+          )
+
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDateSelector() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+      child: InkWell(
+        onTap: () async {
+
+          String? selectedDate = await getdate(context);
+          if (selectedDate != null) {
+            setState(() {
+              dt = selectedDate;
+            });
+          }
+
+        },
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 12),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(color: dt == "" ? Colors.red.withOpacity(0.5) : Colors.grey[300]!),
+          ),
+          child: Row(
+            children: [
+              Icon(Icons.calendar_month, color: dt == "" ? Colors.red : const Color(0xFF063A06)),
+              const SizedBox(width: 15),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    "Sales Date",
+                    style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                  ),
+                  Text(
+                    dt == "" ? "Select Transaction Date" : dt,
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: dt == "" ? Colors.grey[400] : Colors.black87,
+                    ),
+                  ),
+                ],
+              ),
+              const Spacer(),
+              const Icon(Icons.arrow_drop_down, color: Colors.grey),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildInfoCard() {
+    return Container(
+      padding: const EdgeInsets.all(15),
+      color: const Color(0xFF063A06),
+      child: Container(
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: Colors.white.withOpacity(0.1),
+          borderRadius: BorderRadius.circular(10),
+        ),
+        child: Row(
+          children: [
+            const Icon(Icons.store, color: Colors.white70),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                _currentAddress.isEmpty ? "Detecting location..." : _currentAddress,
+                style: const TextStyle(color: Colors.white, fontSize: 12),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildImageSelectors() {
+    return Padding(
+      padding: const EdgeInsets.all(10),
+      child: Row(
+        children: [
+          _imageBox("Main", cameraFile, "image"),
+          const SizedBox(width: 8),
+          _imageBox("Shelf", cameraFile1, "image1"),
+          const SizedBox(width: 8),
+          _imageBox("Other", cameraFile2, "image2"),
+        ],
+      ),
+    );
+  }
+
+  Widget _imageBox(String label, File? file, String type) {
+    return Expanded(
+      child: GestureDetector(
+        onTap: () => selectFromCamera(type),
+        child: Container(
+          height: 80,
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: Colors.grey[300]!),
+          ),
+          child: file == null
+              ? Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(Icons.add_a_photo, size: 20, color: Colors.grey),
+              Text(label, style: const TextStyle(fontSize: 10, color: Colors.grey)),
+            ],
+          )
+              : ClipRRect(
+            borderRadius: BorderRadius.circular(8),
+            child: Image.file(file, fit: BoxFit.cover),
+          ),
+        ),
+      ),
+    );
+  }
+
   Future<void> SKUlist(value,context) async {
-
     itemdata = value.map<Item>((m) => Item.fromJson(Map<String, dynamic>.from(m))).toList();
-
   }
 
   Future<void> save(DropdownProvider dropdownOptionsProvider,context,progress) async {
@@ -668,8 +714,6 @@ class SalesEntryState extends State<SalesEntry>{
         items.add(
             SalesItem(
             int.parse(dropdownOptionsProvider.SKUid[i].toString()),
-            // int.parse(dropdownOptionsProvider.open_stoc[i].toString()),
-            // int.parse(dropdownOptionsProvider.clos_stoc[i].toString()),
             int.parse(dropdownOptionsProvider.sampl_stoc[i].toString()),
             dropdownOptionsProvider.selectedpieces[i],
             dropdownOptionsProvider.selectedquantity[i]
@@ -739,44 +783,129 @@ class SalesEntryState extends State<SalesEntry>{
 
   }
 
-  Future<void> showskudialog(context, List SKUlist,progress) async {
+  Future<void> showskudialog(BuildContext context, List skUlist, progress) async {
 
     progress.dismiss();
+    List filteredList = List.from(skUlist);
 
-    return showDialog<void>(
+    return showModalBottomSheet(
       context: context,
-      barrierDismissible: false,
-      builder: (BuildContext context) {
-        context = context;
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) {
         return StatefulBuilder(
-          builder: (context,setState){
-            return AlertDialog(
-                title: const Text('Select SKU'),
-                content: SizedBox(
-                    width: 400, // Adjust the width as needed
-                    height: 300,
-                    child: ListView.builder(
-                      shrinkWrap: true,
-                      itemCount: SKUlist.length,
-                      itemBuilder: (context,i){
-                        return GestureDetector(
-                            onTap: (){
+          builder: (BuildContext context, StateSetter setModalState) {
 
-                              Navigator.pop(context);
-                              addwidget(SKUlist[i]['itemName'],SKUlist[i]['itemID'],SKUlist[i]['imageurl'],num.parse(SKUlist[i]['quantity']));
+            return Container(
+              height: MediaQuery.of(context).size.height * 0.85,
+              decoration: const BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.only(
+                  topLeft: Radius.circular(25),
+                  topRight: Radius.circular(25),
+                ),
+              ),
+              child: Column(
+                children: [
 
-                            },
+                  Container(
+                    margin: const EdgeInsets.symmetric(vertical: 12),
+                    height: 5,
+                    width: 40,
+                    decoration: BoxDecoration(
+                      color: Colors.grey[300],
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                  ),
 
-                            child: Container(
-                              padding:const EdgeInsets.all(10),
-                              child: Text("${SKUlist[i]['itemName']}"),
-                            )
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
 
+                        const Text(
+                          "Select Product",
+                          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                        ),
+
+                        IconButton(
+                          icon: const Icon(Icons.close),
+                          onPressed: () =>{
+                            Navigator.pop(context)
+                          },
+                        )
+
+                      ],
+                    ),
+                  ),
+
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 5),
+                    child: TextField(
+                      onChanged: (value) {
+                        setModalState(() {
+                          filteredList = skUlist
+                              .where((item) => item['itemName']
+                              .toString()
+                              .toLowerCase()
+                              .contains(value.toLowerCase()))
+                              .toList();
+                        });
+                      },
+                      decoration: InputDecoration(
+                        hintText: "Search SKU...",
+                        prefixIcon: const Icon(Icons.search),
+                        filled: true,
+                        fillColor: Colors.grey[100],
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide.none,
+                        ),
+                      ),
+                    ),
+                  ),
+
+                  const SizedBox(height: 10),
+
+                  Expanded(
+                    child: filteredList.isEmpty
+                        ? const Center(child: Text("No items found"))
+                        : ListView.separated(
+                      padding: const EdgeInsets.symmetric(horizontal: 10),
+                      itemCount: filteredList.length,
+                      separatorBuilder: (context, index) => const Divider(height: 1),
+                      itemBuilder: (context, i) {
+                        return ListTile(
+                          contentPadding: const EdgeInsets.symmetric(horizontal: 15, vertical: 5),
+                          leading: CircleAvatar(
+                            backgroundColor: const Color(0xFF063A06).withOpacity(0.1),
+                            child: const Icon(Icons.inventory_2, color: Color(0xFF063A06)),
+                          ),
+                          title: Text(
+                            filteredList[i]['itemName'],
+                            style: const TextStyle(fontWeight: FontWeight.w500),
+                          ),
+                          // subtitle: Text("Price: ₹${filteredList[i]['quantity']}"),
+                          trailing: const Icon(Icons.add_circle_outline, color: Colors.green),
+                          onTap: () {
+                            Navigator.pop(context);
+                            addwidget(
+                              filteredList[i]['itemName'],
+                              filteredList[i]['itemID'],
+                              filteredList[i]['imageurl'],
+                              num.parse(filteredList[i]['quantity']),
+                            );
+                          },
                         );
-                      }
-                  )
-               )
+                      },
+                    ),
+                  ),
+
+                ],
+              ),
             );
+
           },
         );
       },
