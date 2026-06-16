@@ -1,16 +1,19 @@
-# promoterapp
+# Promoter App
 
-A new Flutter project.
+Flutter field-sales application for promoter users. The app supports login, attendance marking, sales entry with shop validation, sales reporting, dashboard metrics, and selfie capture.
 
-## Getting Started
+Start here:
 
-This project is a starting point for a Flutter application.
+- Full app documentation: [APP_DOCUMENTATION.md](./APP_DOCUMENTATION.md)
 
-A few resources to get you started if this is your first Flutter project:
+Quick run:
 
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
+```bash
+flutter pub get
+flutter run
+```
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+Main entry point:
+
+- [lib/main.dart](./lib/main.dart)
+
