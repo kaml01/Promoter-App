@@ -3,7 +3,6 @@ import 'package:flutter_progress_hud/flutter_progress_hud.dart';
 import 'package:geolocator/geolocator.dart' as geo;
 import 'package:geocoding/geocoding.dart' as Geocoding;
 import 'package:promoterapp/util/functionhelper.dart';
-import 'package:fluttertoast/fluttertoast.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:http/http.dart' as http;
 import 'package:path/path.dart' as path;
@@ -26,6 +25,11 @@ class Selfie extends StatefulWidget {
 }
 
 class _SelfieState extends State<Selfie> {
+  static const Color _pageBackground = Color(0xFFFFFBF7);
+  static const Color _primaryGreen = Color(0xFF3F7F4B);
+  static const Color _primaryText = Color(0xFF203127);
+  static const Color _softGreen = Color(0xFFEAF6EC);
+  static const String _popupFontFamily = 'Georgia';
 
   File? f;
   bool _isLoading = false;
@@ -175,14 +179,6 @@ class _SelfieState extends State<Selfie> {
 
     if(camerastatus.isDenied == true){
 
-      Fluttertoast.showToast(msg: "Please allow camera permission!",
-          toastLength: Toast.LENGTH_SHORT,
-          gravity: ToastGravity.BOTTOM,
-          timeInSecForIosWeb: 1,
-          backgroundColor: Colors.black,
-          textColor: Colors.white,
-          fontSize: 16.0);
-
       Map<Permissionhandler.Permission, Permissionhandler.PermissionStatus> statuses = await [
         Permissionhandler.Permission.camera
       ].request();
@@ -231,14 +227,6 @@ class _SelfieState extends State<Selfie> {
 
       });
 
-      Fluttertoast.showToast(msg: "You don't have any beat! \n Please contact admin",
-          toastLength: Toast.LENGTH_SHORT,
-          gravity: ToastGravity.BOTTOM,
-          timeInSecForIosWeb: 1,
-          backgroundColor: Colors.black,
-          textColor: Colors.white,
-          fontSize: 16.0);
-
     }else{
 
       shopdata = value;
@@ -258,14 +246,6 @@ class _SelfieState extends State<Selfie> {
 
       Navigator.pop(contextt);
 
-      Fluttertoast.showToast(msg: "You don't have any beat! \n Please contact admin",
-          toastLength: Toast.LENGTH_SHORT,
-          gravity: ToastGravity.BOTTOM,
-          timeInSecForIosWeb: 1,
-          backgroundColor: Colors.black,
-          textColor: Colors.white,
-          fontSize: 16.0);
-
     }else{
 
       return showDialog<void>(
@@ -275,87 +255,248 @@ class _SelfieState extends State<Selfie> {
           contextt = context;
           return WillPopScope(
             child: AlertDialog(
+              backgroundColor: _pageBackground,
+              surfaceTintColor: Colors.transparent,
+              insetPadding: const EdgeInsets.symmetric(horizontal: 22, vertical: 24),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(30),
+              ),
+              titlePadding: const EdgeInsets.fromLTRB(22, 20, 22, 0),
+              contentPadding: const EdgeInsets.fromLTRB(18, 16, 18, 18),
+              title: Column(
+                children: [
+                  Container(
+                    width: 44,
+                    height: 5,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFD5DED4),
+                      borderRadius: BorderRadius.circular(99),
+                    ),
+                  ),
+                  const SizedBox(height: 18),
+                  Row(
+                    children: [
+                      Container(
+                        width: 46,
+                        height: 46,
+                        decoration: BoxDecoration(
+                          color: _softGreen,
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        child: const Icon(
+                          Icons.store_mall_directory_outlined,
+                          color: _primaryGreen,
+                          size: 24,
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              'Select Shop',
+                              style: TextStyle(
+                                color: _primaryText,
+                                fontWeight: FontWeight.w700,
+                                fontFamily: _popupFontFamily,
+                                fontSize: 20,
+                                letterSpacing: 0.2,
+                              ),
+                            ),
+                            const SizedBox(height: 3),
+                            Text(
+                              '${beatnamelist.length} assigned shops',
+                              style: const TextStyle(
+                                color: Color(0xFF728077),
+                                fontSize: 12.5,
+                                fontFamily: _popupFontFamily,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      IconButton(
+                        onPressed: () {
+                          Navigator.pop(context);
+                          Navigator.push(
+                            this.context,
+                            MaterialPageRoute(
+                              builder: (contextt) => HomeScreen(),
+                            ),
+                          );
+                        },
+                        style: IconButton.styleFrom(
+                          backgroundColor: Colors.white,
+                          foregroundColor: const Color(0xFF728077),
+                        ),
+                        icon: const Icon(Icons.close_rounded),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 14),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(18),
+                      border: Border.all(color: const Color(0xFFE2E9DF)),
+                    ),
+                    child: const Row(
+                      children: [
+                        Icon(
+                          Icons.touch_app_rounded,
+                          color: _primaryGreen,
+                          size: 18,
+                        ),
+                        SizedBox(width: 10),
+                        Expanded(
+                          child: Text(
+                            'Choose the shop you are visiting to continue with your selfie.',
+                            style: TextStyle(
+                              color: Color(0xFF5E6A61),
+                              fontSize: 12.5,
+                              fontFamily: _popupFontFamily,
+                              height: 1.3,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              content: SizedBox(
+                width: 400,
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(
+                    maxHeight: MediaQuery.of(context).size.height * 0.48,
+                  ),
+                  child: ListView.separated(
+                    shrinkWrap: true,
+                    itemCount: beatnamelist.length,
+                    separatorBuilder: (_, __) => const SizedBox(height: 10),
+                    itemBuilder: (context, i) {
+                      final shop = beatnamelist[i];
+                      final areaText = [
+                        if ((shop.area ?? '').toString().trim().isNotEmpty)
+                          shop.area.toString().trim(),
+                        if ((shop.subArea ?? '').toString().trim().isNotEmpty)
+                          shop.subArea.toString().trim(),
+                      ].join(' • ');
 
-                title: const Text('Select Shop'),
-                content: SizedBox(
-                  width: 400,
-                  // height: 100,
-                  child: ListView.builder(
-                      shrinkWrap: true,
-                      itemCount: beatnamelist.length,
-                      itemBuilder: (context,i){
-                        return GestureDetector(
+                      return Material(
+                        color: Colors.transparent,
+                        child: InkWell(
+                          borderRadius: BorderRadius.circular(22),
+                          onTap: () {
 
-                            onTap: (){
+                            Navigator.pop(contextt);
 
-                              Navigator.pop(contextt);
+                            if(SharedPrefClass.getDouble(latitude)==0.0){
 
-                              if(SharedPrefClass.getDouble(latitude)==0.0){
+                            }else{
 
-                                Fluttertoast.showToast(msg: "Please check your connection!",
-                                    toastLength: Toast.LENGTH_SHORT,
-                                    gravity: ToastGravity.BOTTOM,
-                                    timeInSecForIosWeb: 1,
-                                    backgroundColor: Colors.black,
-                                    textColor: Colors.white,
-                                    fontSize: 16.0);
+                              if(getdistance(SharedPrefClass.getDouble(latitude),SharedPrefClass.getDouble(longitude),double.parse(beatnamelist[i].latitude!),double.parse(beatnamelist[i].longitude!))){
+
+                                print("beatlistid"+(beatnamelist[i].retailerID!.toInt()).toString());
+                                SharedPrefClass.setInt(SHOP_ID,beatnamelist[i].retailerID!.toInt());
 
                               }else{
-
-                                if(getdistance(SharedPrefClass.getDouble(latitude),SharedPrefClass.getDouble(longitude),double.parse(beatnamelist[i].latitude!),double.parse(beatnamelist[i].longitude!))){
-
-                                  print("beatlistid"+(beatnamelist[i].retailerID!.toInt()).toString());
-                                  SharedPrefClass.setInt(SHOP_ID,beatnamelist[i].retailerID!.toInt());
-
-                                }else{
-
-                                  SharedPrefClass.setInt(SHOP_ID,beatnamelist[i].retailerID!.toInt());
-
-                                  setState(() {
-                                    _isLoading=false;
-                                  });
-
-                                  Fluttertoast.showToast(msg: "Too far from store!",
-                                      toastLength: Toast.LENGTH_SHORT,
-                                      gravity: ToastGravity.BOTTOM,
-                                      timeInSecForIosWeb: 1,
-                                      backgroundColor: Colors.black,
-                                      textColor: Colors.white,
-                                      fontSize: 16.0);
-
-                                  Navigator.push(
-                                      context,
-                                      MaterialPageRoute(
-                                          builder: (contextt) =>
-                                              HomeScreen()
-                                      )
-                                  );
-
-                                }
+                                setState(() {
+                                  _isLoading=false;
+                                });
+                                showTooFarFromShopMessage(this.context);
 
                               }
 
-                            },
-                            child: Container(
-                              padding:EdgeInsets.all(10),
-                              child: Text("${beatnamelist[i].retailerName}"),
-                            )
+                            }
 
-                        );
-                      }
+                          },
+                          child: Ink(
+                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 15),
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(22),
+                              border: Border.all(color: const Color(0xFFE2E9DF)),
+                              boxShadow: const [
+                                BoxShadow(
+                                  color: Color(0x0F223024),
+                                  blurRadius: 14,
+                                  offset: Offset(0, 8),
+                                ),
+                              ],
+                            ),
+                            child: Row(
+                              children: [
+                                Container(
+                                  width: 42,
+                                  height: 42,
+                                  decoration: BoxDecoration(
+                                    color: _softGreen,
+                                    borderRadius: BorderRadius.circular(14),
+                                  ),
+                                  child: const Icon(
+                                    Icons.storefront_rounded,
+                                    color: _primaryGreen,
+                                    size: 20,
+                                  ),
+                                ),
+                                const SizedBox(width: 14),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        "${shop.retailerName}",
+                                        style: const TextStyle(
+                                          color: _primaryText,
+                                          fontSize: 15.5,
+                                          fontWeight: FontWeight.w700,
+                                          fontFamily: _popupFontFamily,
+                                        ),
+                                      ),
+                                      if (areaText.isNotEmpty) ...[
+                                        const SizedBox(height: 4),
+                                        Text(
+                                          areaText,
+                                          style: const TextStyle(
+                                            color: Color(0xFF728077),
+                                            fontSize: 12.5,
+                                            fontFamily: _popupFontFamily,
+                                          ),
+                                        ),
+                                      ],
+                                    ],
+                                  ),
+                                ),
+                                const SizedBox(width: 12),
+                                const Icon(
+                                  Icons.arrow_forward_ios_rounded,
+                                  color: Color(0xFF8A968E),
+                                  size: 16,
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      );
+                    },
                   ),
-                )
+                ),
+              ),
             ),
             onWillPop: ()  {
+              Navigator.pop(context);
 
               Navigator.push(
-                  context,
+                  this.context,
                   MaterialPageRoute(
                       builder: (contextt) =>
                           HomeScreen()
                   )
               );
-              return new Future(() => true);
+              return Future.value(false);
 
             },
           );
@@ -392,14 +533,6 @@ class _SelfieState extends State<Selfie> {
 
       if(response.statusCode == 200){
 
-        Fluttertoast.showToast(msg: responsedData.toString(),
-            toastLength: Toast.LENGTH_SHORT,
-            gravity: ToastGravity.BOTTOM,
-            timeInSecForIosWeb: 1,
-            backgroundColor: Colors.black,
-            textColor: Colors.white,
-            fontSize: 16.0);
-
         if(responsedData.contains("DONE")){
 
           progress?.dismiss();
@@ -411,25 +544,9 @@ class _SelfieState extends State<Selfie> {
             ),
           );
 
-          Fluttertoast.showToast(msg: responsedData,
-              toastLength: Toast.LENGTH_SHORT,
-              gravity: ToastGravity.BOTTOM,
-              timeInSecForIosWeb: 1,
-              backgroundColor: Colors.black,
-              textColor: Colors.white,
-              fontSize: 16.0);
-
         }
 
       }else{
-
-        Fluttertoast.showToast(msg: "Please contact admin!!",
-            toastLength: Toast.LENGTH_SHORT,
-            gravity: ToastGravity.BOTTOM,
-            timeInSecForIosWeb: 1,
-            backgroundColor: Colors.black,
-            textColor: Colors.white,
-            fontSize: 16.0);
 
       }
 

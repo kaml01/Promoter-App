@@ -4,7 +4,6 @@ import 'package:battery_plus/battery_plus.dart';
 import 'package:promoterapp/util/Shared_pref.dart';
 import 'package:permission_handler/permission_handler.dart' as Permissionhandler;
 import 'dart:io';
-import 'package:latlong2/latlong.dart';
 import 'package:intl/intl.dart';
 import 'package:geocoding/geocoding.dart' as Geocoding;
 import 'package:geolocator/geolocator.dart';
@@ -128,192 +127,6 @@ String getcurrentdatewithtime(){
 
 }
 
-// Future<void> showdialogg(String status,BuildContext context, List<Shops> listdata,progress) async {
-//
-//   progress.dismiss();
-//   return showDialog(
-//       barrierDismissible: false,
-//       context: context,
-//       builder:(BuildContext context) {
-//         return AlertDialog(
-//           title: const Text('Attendance'),
-//           content: const Text('Are you really present?'),
-//           actions: <Widget>[
-//
-//             TextButton(
-//               onPressed: () => {
-//                 Navigator.pop(context, 'Cancel'),
-//                 progress!.dismiss()
-//               },
-//               child: const Text('No'),
-//             ),
-//
-//             TextButton(
-//               onPressed: () =>{
-//                 // Navigator.pop(context),
-//                 gettodaysbeatt(status,context,listdata,progress),
-//                },
-//
-//               child: const Text('Yes'),
-//               ),
-//
-//            ],
-//
-//          );
-//
-//       }
-//
-//   );
-//
-// }
-//
-//
-// Future<void> gettodaysbeatt(status,context,List<Shops> beatnamelist,progress) async {
-//
-//   int beatId = (SharedPrefClass.getInt(BEAT_ID)==0 ? -1 : SharedPrefClass.getInt(BEAT_ID));
-//
-//   if(beatId==0 || beatId ==-1){
-//
-//      //showbeat(status,context,beatnamelist,beatIdlist);
-//      showbeatt(status,context,beatnamelist,progress);
-//
-//   }else{
-//
-//     markattendance(status,beatId.toString(),context,"" as File,progress);
-//
-//   }
-//
-// }
-//
-//
-// Future<void> showbeatt(String status,BuildContext contextt, List<Shops> beatnamelist,progress) async {
-//
-//   if(beatnamelist.isEmpty){
-//
-//     Navigator.pop(contextt);
-//
-//     Fluttertoast.showToast(msg: "You don't have any beat! \n Please contact admin",
-//         toastLength: Toast.LENGTH_SHORT,
-//         gravity: ToastGravity.BOTTOM,
-//         timeInSecForIosWeb: 1,
-//         backgroundColor: Colors.black,
-//         textColor: Colors.white,
-//         fontSize: 16.0);
-//
-//   }else{
-//
-//     Navigator.pop(contextt);
-//   //  progress.dismiss();
-//
-//     return showDialog<void>(
-//       context: contextt,
-//       barrierDismissible: false,
-//       builder: (BuildContext context) {
-//         contextt = context;
-//         return AlertDialog(
-//           title: const Text('Select Shop'),
-//           content:ListView.builder(
-//               shrinkWrap: true,
-//               itemCount: beatnamelist.length,
-//               itemBuilder: (context,i){
-//                 return GestureDetector(
-//
-//                     onTap: (){
-//
-//                       Navigator.pop(contextt);
-//                       if(SharedPrefClass.getDouble(latitude)==0.0){
-//
-//                         Fluttertoast.showToast(msg: "Please check your connection!",
-//                             toastLength: Toast.LENGTH_SHORT,
-//                             gravity: ToastGravity.BOTTOM,
-//                             timeInSecForIosWeb: 1,
-//                             backgroundColor: Colors.black,
-//                             textColor: Colors.white,
-//                             fontSize: 16.0);
-//
-//                       }else{
-//
-//                         if(getdistance(SharedPrefClass.getDouble(latitude),SharedPrefClass.getDouble(longitude),double.parse(beatnamelist[i].latitude!),double.parse(beatnamelist[i].longitude!))){
-//
-//                           SharedPrefClass.setInt(SHOP_ID,beatnamelist[i].retailerID!.toInt());
-//                           selectFromCamera(status,beatnamelist[i].toString(),contextt,progress);
-//
-//                         }else{
-//
-//                           Fluttertoast.showToast(msg: "Too far from store!",
-//                               toastLength: Toast.LENGTH_SHORT,
-//                               gravity: ToastGravity.BOTTOM,
-//                               timeInSecForIosWeb: 1,
-//                               backgroundColor: Colors.black,
-//                               textColor: Colors.white,
-//                               fontSize: 16.0);
-//
-//                         }
-//
-//                       }
-//
-//                     },
-//                     child: Container(
-//                       padding:EdgeInsets.all(10),
-//                       child: Text("${beatnamelist[i].retailerName}"),
-//                     )
-//                 );
-//               }
-//           ),
-//         );
-//       },
-//     );
-//
-//   }
-//
-// }
-//
-//
-// selectFromCamera(String status, String beatid,BuildContext contextt,progress) async {
-//
-//   var camerastatus = await Permissionhandler.Permission.camera.status;
-//
-//   if(camerastatus.isDenied == true){
-//
-//     Fluttertoast.showToast(msg: "Please allow camera permission!",
-//         toastLength: Toast.LENGTH_SHORT,
-//         gravity: ToastGravity.BOTTOM,
-//         timeInSecForIosWeb: 1,
-//         backgroundColor: Colors.black,
-//         textColor: Colors.white,
-//         fontSize: 16.0);
-//
-//     Map<Permissionhandler.Permission, Permissionhandler.PermissionStatus> statuses = await [
-//       Permissionhandler.Permission.camera
-//     ].request();
-//
-//   }else{
-//
-//     try{
-//
-//         File? f;
-//         int userid=0;
-//         userid = SharedPrefClass.getInt(USER_ID);
-//
-//         final cameraFile= await ImagePicker().pickImage(source: ImageSource.camera,imageQuality: 50);
-//
-//         final now = new DateTime.now();
-//         String dir = path.dirname(cameraFile!.path);
-//         String newPath = path.join(dir,("$userid-${now.day}-${now.month}-${now.year}-${now.hour}${now.minute}${now.second}.jpg"));
-//         f = await File(cameraFile.path).copy(newPath);
-//
-//         markattendance(status,beatid,contextt,f,progress);
-//
-//     }catch(e){
-//
-//       print('Failed to pick image: $e');
-//
-//     }
-//
-//   }
-//
-// }
-
 Future<void> askpermission() async {
 
   var camerastatus = await Permissionhandler.Permission.camera.status;
@@ -358,15 +171,12 @@ Future<void> checkdistance() async {
 bool getdistance(lat1 ,lng1, lat2, lng2){
 
   bool isallowed = false;
-  var distance = Distance();
-
- // final totaldist = distance(LatLng(lat1,lng2), LatLng(lat2,lng2));
   final totaldist = Geolocator.distanceBetween(lat1,lng1,lat2,lng2);
   print("total distance $totaldist");
   int disallow = SharedPrefClass.getInt(DISTANCE_ALLOWED);
   print("DISTANCE ALLOWED $disallow");
 
-  if(disallow > totaldist){
+  if(totaldist <= disallow){
 
     print("$disallow");
     isallowed = true;
@@ -380,6 +190,14 @@ bool getdistance(lat1 ,lng1, lat2, lng2){
 
   return isallowed;
 
+}
+
+void showTooFarFromShopMessage(BuildContext context) {
+  ScaffoldMessenger.of(context).showSnackBar(
+    const SnackBar(
+      content: Text('Too far from shop'),
+    ),
+  );
 }
 
 Future<String> getdate(context) async{

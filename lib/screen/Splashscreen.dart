@@ -4,7 +4,6 @@ import 'package:promoterapp/screen/HomeScreen.dart';
 import 'package:promoterapp/screen/LoginScreen.dart';
 import 'package:permission_handler/permission_handler.dart' as Permissionhandler;
 import 'package:flutter/cupertino.dart';
-import 'package:fluttertoast/fluttertoast.dart';
 import 'package:flutter/material.dart';
 import '../util/Shared_pref.dart';
 
@@ -12,7 +11,7 @@ class SplashScreen extends StatefulWidget{
 
   @override
   SplashScreenState createState() => new SplashScreenState();
-
+  
 }
 
 class SplashScreenState extends State<SplashScreen>{
@@ -21,7 +20,7 @@ class SplashScreenState extends State<SplashScreen>{
   void initState() {
     super.initState();
     print("userid value");
-    checkisalreadyloggedin();
+    _bootstrapApp();
   }
 
   @override
@@ -42,6 +41,20 @@ class SplashScreenState extends State<SplashScreen>{
 
   }
 
+  Future<void> _bootstrapApp() async {
+    try {
+      await SharedPrefClass.init();
+    } catch (e) {
+      debugPrint("Shared preferences init failed: $e");
+    }
+
+    if (!mounted) {
+      return;
+    }
+
+    checkisalreadyloggedin();
+  }
+
   void checkisalreadyloggedin() async{
 
     try{
@@ -54,23 +67,21 @@ class SplashScreenState extends State<SplashScreen>{
 
       if(userid!=0){
 
-        Timer(const Duration(seconds: 3), () =>  Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) =>
-                HomeScreen(),
-          ),
-        ));
+        Timer(const Duration(seconds: 3), () =>  Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(
+                builder: (context) => HomeScreen(),
+              ),
+            ));
 
       }else{
 
-        Timer(Duration(seconds: 3), () =>  Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) =>
-                LoginScreen(),
-          ),
-        ));
+        Timer(const Duration(seconds: 3), () =>  Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(
+                builder: (context) => LoginScreen(),
+              ),
+            ));
 
       }
 
@@ -85,15 +96,6 @@ class SplashScreenState extends State<SplashScreen>{
     var locationstatus = await Permissionhandler.Permission.locationAlways.status;
 
     if(locationstatus.isGranted == false){
-
-      Fluttertoast.showToast(
-          msg: "Please allow location permission",
-          toastLength: Toast.LENGTH_SHORT,
-          gravity: ToastGravity.BOTTOM,
-          timeInSecForIosWeb: 1,
-          backgroundColor: Colors.black,
-          textColor: Colors.white,
-          fontSize: 16.0);
 
     }else{
       await initializeService();

@@ -3,8 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_progress_hud/flutter_progress_hud.dart';
 import 'package:location/location.dart';
 import 'package:permission_handler/permission_handler.dart' as Permissionhandler;
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:promoterapp/util/ApiHelper.dart';
+import 'package:promoterapp/util/Shared_pref.dart';
 import '../config/Common.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -23,30 +23,40 @@ class _LoginScreenState extends State<LoginScreen> {
   bool _obscureText = true, gpsstatus = false;
   Location location = Location();
 
-  // Brand Colors
   static const Color primaryGreen = Color(0xFF063A06);
   static const Color lightGreen = Color(0xFF0A5C0A);
 
-  void checkurlstatus(context) async {
+  void _showSnackBar(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message)),
+    );
+  }
+
+  Future<void> checkurlstatus(BuildContext context) async {
     try {
-      proxylogin(context, usercontroller.text).then((value) => {
-        updateurl(value, context)
-      });
-    } catch (e, s) {
-      print(s);
+      final user = usercontroller.text.trim();
+      final pass = passcontroller.text.trim();
+
+      if (user.isEmpty || pass.isEmpty) {
+        _showSnackBar('Enter username and password.');
+        return;
+      }
+
+      await updateurl(context, user, pass);
+    } catch (e) {
+      _showSnackBar('Unable to start login. Please try again.');
     }
   }
 
-  void updateurl(status, context) async {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    if (status == true) {
-      prefs.setString(IP_URL, "http://dsr.jivocanola.com/AndroidServer/");
-      // prefs.setString(IP_URL, "http://103.89.45.75:90/AndroidServer/");
-      login(context, usercontroller.text, passcontroller.text);
-    } else {
-      prefs.setString(IP_URL, "http://dsr.jivocanola.com/AndroidServer/");
-      // prefs.setString(IP_URL, "http://103.89.45.75:90/AndroidServer/");
-      login(context, usercontroller.text, passcontroller.text);
+  Future<void> updateurl(BuildContext context, String user, String pass) async {
+    try {
+      // await SharedPrefClass.setString(
+      //     IP_URL, "http://103.89.45.75:90/AndroidServer/");
+      await SharedPrefClass.setString(
+          IP_URL, "http://dsr.jivocanola.com:90/AndroidServer/");
+      await login(context, user, pass);
+    } catch (e) {
+      _showSnackBar('Unable to connect to the server.');
     }
   }
 
@@ -91,9 +101,11 @@ class _LoginScreenState extends State<LoginScreen> {
   Future<void> askpermission() async {
     try {
       var camerastatus = await Permissionhandler.Permission.camera.status;
-      var locationstatus = await Permissionhandler.Permission.locationWhenInUse.status;
+      var locationstatus =
+          await Permissionhandler.Permission.locationWhenInUse.status;
 
-      if (camerastatus.isGranted == false || locationstatus.isGranted == false) {
+      if (camerastatus.isGranted == false ||
+          locationstatus.isGranted == false) {
         await [
           Permissionhandler.Permission.location,
           Permissionhandler.Permission.camera
@@ -172,7 +184,7 @@ class _LoginScreenState extends State<LoginScreen> {
   Widget _buildLogoSection() {
     return Column(
       children: [
-        // Logo Container with shadow
+
         Container(
           width: 90,
           height: 90,
@@ -205,6 +217,7 @@ class _LoginScreenState extends State<LoginScreen> {
         //     letterSpacing: 4,
         //   ),
         // ),
+
       ],
     );
   }
@@ -269,7 +282,9 @@ class _LoginScreenState extends State<LoginScreen> {
             suffixIcon: GestureDetector(
               onTap: () => setState(() => _obscureText = !_obscureText),
               child: Icon(
-                _obscureText ? Icons.visibility_off_outlined : Icons.visibility_outlined,
+                _obscureText
+                    ? Icons.visibility_off_outlined
+                    : Icons.visibility_outlined,
                 color: Colors.grey[500],
                 size: 22,
               ),
@@ -335,7 +350,8 @@ class _LoginScreenState extends State<LoginScreen> {
           ),
           suffixIcon: suffixIcon,
           border: InputBorder.none,
-          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+          contentPadding:
+              const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
         ),
       ),
     );
@@ -343,6 +359,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
   Widget _buildLoginButton(BuildContext ctx) {
     return GestureDetector(
+      behavior: HitTestBehavior.opaque,
       onTap: () => checkurlstatus(ctx),
       child: Container(
         width: double.infinity,
@@ -389,12 +406,15 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   Widget _buildFooter() {
+    final currentYear = DateTime.now().year;
+
     return Text(
-      '© 2025 Jivo Wellness',
+      '© $currentYear Jivo Wellness',
       style: TextStyle(
         fontSize: 12,
         color: Colors.grey[500],
       ),
     );
   }
+
 }

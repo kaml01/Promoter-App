@@ -7,11 +7,8 @@ import 'package:provider/provider.dart';
 import 'dart:async';
 
 Future<void> main() async {
-
   WidgetsFlutterBinding.ensureInitialized();
-  await SharedPrefClass.init();
   runApp(MyApp());
-
 }
 
 class MyApp extends StatelessWidget {

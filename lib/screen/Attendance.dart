@@ -5,7 +5,6 @@ import 'package:promoterapp/util/functionhelper.dart';
 import 'package:mobile_number/mobile_number.dart';
 import 'package:promoterapp/util/ApiHelper.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:fluttertoast/fluttertoast.dart';
 import 'package:promoterapp/models/Shops.dart';
 import 'package:location/location.dart';
 import 'package:flutter/cupertino.dart';
@@ -21,6 +20,10 @@ import 'dart:async';
 import 'dart:io';
 
 class Attendance extends StatefulWidget{
+    
+    const Attendance({super.key, this.showAppBar = false});
+
+    final bool showAppBar;
 
     @override
     State<StatefulWidget> createState() {
@@ -30,13 +33,21 @@ class Attendance extends StatefulWidget{
 }
 
 class AttendanceState extends State<Attendance>{
-
+  
+  static const Color _attendanceGreenDark = Color(0xFF3F7F4B);
+  static const Color _attendanceGreenSoft = Color(0xFFE8F5E9);
+  static const Color _attendanceSurface = Color(0xFFFFFBF7);
+  static const String _popupFontFamily = 'Georgia';
+    
   double? lat ,lng;
   List beatnamelist = [];
   List<int> beatIdlist = [];
   int userid=0,beatId=0;
   String attStatus="";
-  bool _isLoading = false;
+  bool _isBusy = false;
+  bool _isFetchingLocation = true;
+  bool _isFetchingBeats = true;
+  bool _hasFetchedLocation = false;
   get progress => null;
   List<Shops> shopdata = [];
   bool cstatus = false ,lstatus =false,gpsstatus=false;
@@ -49,20 +60,20 @@ class AttendanceState extends State<Attendance>{
 
   @override
   void initState() {
+
     super.initState();
     initMobileNumberState();
     askpermission();
     getCurrentPosition(context);
     getAttendanceStatus();
-    setState(() {
-      _isLoading = true;
-    });
-
     getallbeat('GetShopsDataver3').then((value) => allbeatlist(value));
-
   }
+  
+  bool get _canUseAttendanceActions =>
+      !_isBusy && !_isFetchingLocation && !_isFetchingBeats && _hasFetchedLocation;
 
   Future<bool> _handleLocationPermission(context) async {
+
     bool serviceEnabled;
     geo.LocationPermission permission;
 
@@ -96,9 +107,21 @@ class AttendanceState extends State<Attendance>{
   }
 
   Future<void> getCurrentPosition(context) async {
+    if (mounted) {
+      setState(() {
+        _isFetchingLocation = true;
+        _hasFetchedLocation = false;
+        _currentAddress = "";
+      });
+    }
+
     final hasPermission = await _handleLocationPermission(context);
     if (!hasPermission) {
-      setState(() => _isLoading = false);
+      if (mounted) {
+        setState(() {
+          _isFetchingLocation = false;
+        });
+      }
       return;
     }
 
@@ -125,11 +148,11 @@ class AttendanceState extends State<Attendance>{
         currentPosition = position;
         await SharedPrefClass.setDouble(latitude, position.latitude);
         await SharedPrefClass.setDouble(longitude, position.longitude);
+        _hasFetchedLocation = true;
 
         // Attempt address lookup, but don't let it stop the app
         await _getAddressFromLatLng(position);
       } else {
-        Fluttertoast.showToast(msg: "Location unavailable. Move to an open area.");
       }
 
     } catch (e) {
@@ -138,7 +161,7 @@ class AttendanceState extends State<Attendance>{
       // 4. Crucial: Stop the loading spinner no matter what happened
       if (mounted) {
         setState(() {
-          _isLoading = false;
+          _isFetchingLocation = false;
         });
       }
     }
@@ -213,16 +236,6 @@ class AttendanceState extends State<Attendance>{
     //
     // } catch (e) {
     //
-    //   Fluttertoast.showToast(
-    //       msg: "This is Toast",
-    //       toastLength: Toast.LENGTH_SHORT,
-    //       gravity: ToastGravity.CENTER,
-    //       timeInSecForIosWeb: 1,
-    //       backgroundColor: Colors.red,
-    //       textColor: Colors.white,
-    //       fontSize: 16.0
-    //   );
-    //
     //   print('Serial number: ${e}');
     //   // debugPrint("error! code: ${e.code} - message: ${e.message}");
     // }
@@ -296,25 +309,17 @@ class AttendanceState extends State<Attendance>{
 
       });
 
-      Fluttertoast.showToast(msg: "You don't have any beat! \n Please contact admin",
-          toastLength: Toast.LENGTH_SHORT,
-          gravity: ToastGravity.BOTTOM,
-          timeInSecForIosWeb: 1,
-          backgroundColor: Colors.black,
-          textColor: Colors.white,
-          fontSize: 16.0);
-
     }else{
 
       shopdata = value;
       setState(() {
-        _isLoading = false;
+        _isFetchingBeats = false;
       });
 
     }
 
   }
-
+  
   Future<void> showalltimepermissiondialog() async {
     return showDialog<void>(
       context: context,
@@ -346,38 +351,88 @@ class AttendanceState extends State<Attendance>{
   @override
   Widget build(BuildContext ctx) {
     return Scaffold(
-      backgroundColor: Colors.grey[100], // Light background for contrast
-      appBar: AppBar(
-        elevation: 0,
-        backgroundColor: const Color(0xFF063A06), // Dark green theme
-        title: const Text("Daily Attendance", style: TextStyle(color: Colors.white)),
-        centerTitle: true,
-      ),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator(color: Color(0xFF063A06)))
-          : SingleChildScrollView(
-        child: Column(
-          children: [
-            _buildLocationHeader(), // Shows current status
-            Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: GridView.count(
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                crossAxisCount: 2,
-                crossAxisSpacing: 15,
-                mainAxisSpacing: 15,
-                children: [
-                  _buildActionCard("PRESENT", Icons.fingerprint, present ? const Color(0xFF063A06) : Colors.grey, penabled, "P"),
-                  _buildActionCard("MID DAY", Icons.wb_sunny, hd ? Colors.orange[800]! : Colors.grey, hdenabled, "NOON"),
-                  _buildActionCard("END OF DAY", Icons.home_work, eod ? Colors.redAccent : Colors.grey, eodenabled, "EOD"),
-                  _buildActionCard("WEEK OFF", Icons.calendar_today, wo ? Colors.blue : Colors.grey, woenabled, "WO"),
-                  _buildActionCard("ABSENT", Icons.person_off, ab ? Colors.black87 : Colors.grey, abenabled, "A"),
-                ],
+      backgroundColor: _attendanceSurface,
+      appBar: widget.showAppBar
+          ? AppBar(
+              backgroundColor: _attendanceSurface,
+              surfaceTintColor: Colors.transparent,
+              elevation: 0,
+              scrolledUnderElevation: 0,
+              centerTitle: true,
+              title: const Text(
+                'Attendance',
+                style: TextStyle(
+                  fontWeight: FontWeight.w600,
+                  color: Color(0xFF203127),
+                ),
+              ),
+              iconTheme: const IconThemeData(color: _attendanceGreenDark),
+            )
+          : null,
+      body: Stack(
+        children: [
+          SingleChildScrollView(
+            child: Column(
+              children: [
+                _buildLocationHeader(),
+                Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: GridView.count(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    crossAxisCount: 2,
+                    crossAxisSpacing: 15,
+                    mainAxisSpacing: 15,
+                    children: [
+                      _buildActionCard(
+                        "PRESENT",
+                        Icons.fingerprint,
+                        present ? _attendanceGreenDark : Colors.grey,
+                        penabled,
+                        "P",
+                      ),
+                      _buildActionCard(
+                        "MID DAY",
+                        Icons.wb_sunny,
+                        hd ? Colors.orange[700]! : Colors.grey,
+                        hdenabled,
+                        "NOON",
+                      ),
+                      _buildActionCard(
+                        "END OF DAY",
+                        Icons.home_work,
+                        eod ? Colors.redAccent : Colors.grey,
+                        eodenabled,
+                        "EOD",
+                      ),
+                      _buildActionCard(
+                        "WEEK OFF",
+                        Icons.calendar_today,
+                        wo ? Colors.blue : Colors.grey,
+                        woenabled,
+                        "WO",
+                      ),
+                      _buildActionCard(
+                        "ABSENT",
+                        Icons.person_off,
+                        ab ? Colors.black87 : Colors.grey,
+                        abenabled,
+                        "A",
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+          if (_isBusy)
+            Container(
+              color: Colors.white.withValues(alpha: 0.7),
+              child: const Center(
+                child: CircularProgressIndicator(color: _attendanceGreenDark),
               ),
             ),
-          ],
-        ),
+        ],
       ),
     );
   }
@@ -386,54 +441,110 @@ class AttendanceState extends State<Attendance>{
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: const BoxDecoration(
-        color: Color(0xFF063A06),
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            Color(0xFFEAF7EC),
+            _attendanceGreenSoft,
+          ],
+        ),
         borderRadius: BorderRadius.only(bottomLeft: Radius.circular(30), bottomRight: Radius.circular(30)),
       ),
       child: Row(
         children: [
-          const Icon(Icons.location_on, color: Colors.white, size: 40),
+          Container(
+            width: 52,
+            height: 52,
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.82),
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: const Icon(Icons.location_on, color: _attendanceGreenDark, size: 28),
+          ),
           const SizedBox(width: 15),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text("Current Location", style: TextStyle(color: Colors.white70, fontSize: 12)),
+                Text(
+                  _isFetchingLocation ? "Fetching current location" : "Current Location",
+                  style: const TextStyle(
+                    color: _attendanceGreenDark,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const SizedBox(height: 4),
                 Text(
                   _currentAddress.isEmpty ? "Fetching location..." : _currentAddress,
-                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14),
+                  style: const TextStyle(
+                    color: Color(0xFF203127),
+                    fontWeight: FontWeight.bold,
+                    fontSize: 14,
+                  ),
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  _canUseAttendanceActions
+                      ? "Attendance buttons are ready."
+                      : "Attendance buttons will enable after location is fetched.",
+                  style: const TextStyle(
+                    color: Color(0xFF5E6D61),
+                    fontSize: 11,
+                  ),
                 ),
               ],
             ),
           ),
-          IconButton(
-            icon: const Icon(Icons.refresh, color: Colors.white),
-            onPressed: () => getCurrentPosition(context),
-          )
+          _isFetchingLocation
+              ? const SizedBox(
+                  width: 24,
+                  height: 24,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2.4,
+                    color: _attendanceGreenDark,
+                  ),
+                )
+              : IconButton(
+                  icon: const Icon(Icons.refresh, color: _attendanceGreenDark),
+                  onPressed: _isBusy ? null : () => getCurrentPosition(context),
+                )
         ],
       ),
     );
   }
 
-// Clean, modern card-style buttons
   Widget _buildActionCard(String title, IconData icon, Color color, bool enabled, String status) {
+    final bool canTap = enabled && _canUseAttendanceActions;
     return GestureDetector(
-      onTap: enabled ? () => showdialogg(status, context, shopdata) : null,
+      behavior: HitTestBehavior.opaque,
+      onTap: canTap ? () => showdialogg(status, context, shopdata) : null,
       child: AnimatedOpacity(
         duration: const Duration(milliseconds: 300),
-        opacity: enabled ? 1.0 : 0.5,
+        opacity: canTap ? 1.0 : 0.5,
         child: Container(
           decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.circular(20),
-            boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, 5))],
+            border: Border.all(color: const Color(0xFFE8EDE5)),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.05),
+                blurRadius: 10,
+                offset: const Offset(0, 5),
+              )
+            ],
           ),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               CircleAvatar(
-                backgroundColor: color.withOpacity(0.1),
+                backgroundColor: canTap
+                    ? color.withValues(alpha: 0.12)
+                    : _attendanceGreenSoft,
                 child: Icon(icon, color: color),
               ),
               const SizedBox(height: 12),
@@ -445,6 +556,74 @@ class AttendanceState extends State<Attendance>{
     );
   }
 
+  Color _statusAccent(String status) {
+    switch (status) {
+      case "P":
+        return _attendanceGreenDark;
+      case "NOON":
+        return Colors.orange.shade700;
+      case "EOD":
+        return Colors.redAccent;
+      case "WO":
+        return Colors.blue;
+      case "A":
+        return Colors.black87;
+      default:
+        return _attendanceGreenDark;
+    }
+  }
+
+  IconData _statusIcon(String status) {
+    switch (status) {
+      case "P":
+        return Icons.fingerprint_rounded;
+      case "NOON":
+        return Icons.wb_sunny_rounded;
+      case "EOD":
+        return Icons.home_work_rounded;
+      case "WO":
+        return Icons.calendar_today_rounded;
+      case "A":
+        return Icons.person_off_rounded;
+      default:
+        return Icons.verified_rounded;
+    }
+  }
+
+  String _statusLabel(String status) {
+    switch (status) {
+      case "P":
+        return "Present";
+      case "NOON":
+        return "Mid Day";
+      case "EOD":
+        return "End Of Day";
+      case "WO":
+        return "Week Off";
+      case "A":
+        return "Absent";
+      default:
+        return "Attendance";
+    }
+  }
+
+  String _statusMessage(String status) {
+    switch (status) {
+      case "P":
+        return "Confirm that you want to mark yourself present for today.";
+      case "NOON":
+        return "Confirm your mid day attendance update before continuing.";
+      case "EOD":
+        return "Confirm that you want to close the day with end of day attendance.";
+      case "WO":
+        return "Confirm that you want to mark today as week off.";
+      case "A":
+        return "Confirm that you want to mark yourself absent for today.";
+      default:
+        return "Please confirm this attendance action.";
+    }
+  }
+
   Future<void> showdialogg(String status,BuildContext ctx, List<Shops> listdata) async {
 
     return showDialog(
@@ -453,36 +632,104 @@ class AttendanceState extends State<Attendance>{
         context: context,
         builder:(BuildContext context) {
           ctx = context;
+          final accent = _statusAccent(status);
           return AlertDialog(
-            title: const Text('Attendance'),
-            content:status=="P"||status=="NOON"?Text('Are you really present?'):Text('Are you sure?'),
-            actions: <Widget>[
-
-              TextButton(
-                onPressed: () => {
-                  Navigator.pop(context, 'Cancel'),
-                  setState(() {
-                    _isLoading = false;
-                  })
-                },
-                child: const Text('No'),
+            backgroundColor: const Color(0xFFFFFBF7),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(28),
+            ),
+            titlePadding: const EdgeInsets.fromLTRB(24, 24, 24, 10),
+            contentPadding: const EdgeInsets.fromLTRB(24, 0, 24, 8),
+            actionsPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+            title: Column(
+              children: [
+                Container(
+                  width: 64,
+                  height: 64,
+                  decoration: BoxDecoration(
+                    color: accent.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Icon(_statusIcon(status), color: accent, size: 30),
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  _statusLabel(status),
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    color: Color(0xFF203127),
+                    fontSize: 22,
+                    fontWeight: FontWeight.w700,
+                    fontFamily: _popupFontFamily,
+                    letterSpacing: 0.2,
+                  ),
+                ),
+              ],
+            ),
+            content: Text(
+              _statusMessage(status),
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                color: Color(0xFF5E6D61),
+                fontSize: 14,
+                height: 1.5,
+                fontFamily: _popupFontFamily,
               ),
+            ),
+            actions: <Widget>[
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: () {
+                        Navigator.pop(context, 'Cancel');
+                        setState(() {
+                          _isBusy = false;
+                        });
+                      },
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: const Color(0xFF5E6D61),
+                        side: const BorderSide(color: Color(0xFFE4EADF)),
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                      ),
+                      child: const Text(
+                        'Cancel',
+                        style: TextStyle(fontFamily: _popupFontFamily),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: FilledButton(
+                      onPressed: () async {
+                        setState(() {
+                          _isBusy = true;
+                        });
 
-              TextButton(
-                onPressed: () =>{
-
-                  if(status=="P" || status=="NOON" ||status=="EOD"){
-
-                    gettodaysbeatt(status,ctx,listdata),
-
-                  }else{
-
-                     markattendance(status,beatId.toString(),context,f)
-
-                  }
-
-                },
-                child: const Text('Yes'),
+                        if(status=="P" || status=="NOON" ||status=="EOD"){
+                          await gettodaysbeatt(status,ctx,listdata);
+                        }else{
+                          await markattendance(status,beatId.toString(),context,f);
+                        }
+                      },
+                      style: FilledButton.styleFrom(
+                        backgroundColor: accent,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                      ),
+                      child: const Text(
+                        'Confirm',
+                        style: TextStyle(fontFamily: _popupFontFamily),
+                      ),
+                    ),
+                  ),
+                ],
               ),
 
             ],
@@ -499,11 +746,11 @@ class AttendanceState extends State<Attendance>{
 
     if(beatId==0 || beatId ==-1 ){
 
-      showbeatt(status,context,beatnamelist);
+      await showbeatt(status,context,beatnamelist);
 
     }else{
 
-      markattendance(status,beatId.toString(),context,"" as File);
+      await markattendance(status,beatId.toString(),context,"" as File);
 
     }
 
@@ -512,18 +759,20 @@ class AttendanceState extends State<Attendance>{
   Future<void> showbeatt(String status,BuildContext contextt, List<Shops> beatnamelist) async {
 
     if(beatnamelist.isEmpty){
+      if (mounted) {
+        setState(() {
+          _isBusy = false;
+        });
+      }
 
       Navigator.pop(contextt);
 
-      Fluttertoast.showToast(msg: "No shop assigned",
-          toastLength: Toast.LENGTH_SHORT,
-          gravity: ToastGravity.BOTTOM,
-          timeInSecForIosWeb: 1,
-          backgroundColor: Colors.black,
-          textColor: Colors.white,
-          fontSize: 16.0);
-
     }else{
+      if (mounted) {
+        setState(() {
+          _isBusy = false;
+        });
+      }
 
       Navigator.pop(contextt);
 
@@ -534,71 +783,255 @@ class AttendanceState extends State<Attendance>{
           contextt = context;
           return WillPopScope(
               child: AlertDialog(
-                title: const Text('Select Shop'),
+                backgroundColor: const Color(0xFFFFFBF7),
+                surfaceTintColor: Colors.transparent,
+                insetPadding: const EdgeInsets.symmetric(horizontal: 22, vertical: 24),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(30),
+                ),
+                titlePadding: const EdgeInsets.fromLTRB(22, 18, 22, 0),
+                contentPadding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
+                title: Column(
+                  children: [
+                    Container(
+                      width: 44,
+                      height: 5,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFD5DED4),
+                        borderRadius: BorderRadius.circular(99),
+                      ),
+                    ),
+                    const SizedBox(height: 18),
+                    Row(
+                      children: [
+                        Container(
+                          width: 46,
+                          height: 46,
+                          decoration: BoxDecoration(
+                            color: _attendanceGreenSoft,
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                          child: const Icon(
+                            Icons.store_mall_directory_outlined,
+                            color: _attendanceGreenDark,
+                            size: 24,
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text(
+                                'Select Shop',
+                                style: TextStyle(
+                                  color: Color(0xFF203127),
+                                  fontWeight: FontWeight.w700,
+                                  fontFamily: _popupFontFamily,
+                                  fontSize: 20,
+                                  letterSpacing: 0.2,
+                                ),
+                              ),
+                              const SizedBox(height: 3),
+                              Text(
+                                '${beatnamelist.length} assigned shops',
+                                style: const TextStyle(
+                                  color: Color(0xFF728077),
+                                  fontSize: 12.5,
+                                  fontFamily: _popupFontFamily,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        IconButton(
+                          onPressed: () {
+                            setState(() {
+                              _isBusy = false;
+                            });
+                            Navigator.pop(context);
+                          },
+                          style: IconButton.styleFrom(
+                            backgroundColor: Colors.white,
+                            foregroundColor: const Color(0xFF728077),
+                          ),
+                          icon: const Icon(Icons.close_rounded),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 14),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(18),
+                        border: Border.all(color: const Color(0xFFE2E9DF)),
+                      ),
+                      child: const Row(
+                        children: [
+                          Icon(
+                            Icons.touch_app_rounded,
+                            color: _attendanceGreenDark,
+                            size: 18,
+                          ),
+                          SizedBox(width: 10),
+                          Expanded(
+                            child: Text(
+                              'Choose the shop you are visiting to continue attendance.',
+                              style: TextStyle(
+                                color: Color(0xFF5E6A61),
+                                fontSize: 12.5,
+                                fontFamily: _popupFontFamily,
+                                height: 1.3,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
                 content: SizedBox(
-                  width:400,
-                  child: ListView.builder(
-                      shrinkWrap: true,
-                      itemCount: beatnamelist.length,
-                      itemBuilder: (context,i){
-                        return GestureDetector(
+                  width: 400,
+                  child: ConstrainedBox(
+                    constraints: BoxConstraints(
+                      maxHeight: MediaQuery.of(context).size.height * 0.48,
+                    ),
+                    child: ListView.separated(
+                        shrinkWrap: true,
+                        itemCount: beatnamelist.length,
+                        separatorBuilder: (_, __) => const SizedBox(height: 10),
+                        itemBuilder: (context, i) {
+                          final shop = beatnamelist[i];
+                          final areaText = [
+                            if ((shop.area ?? '').toString().trim().isNotEmpty)
+                              shop.area.toString().trim(),
+                            if ((shop.subArea ?? '').toString().trim().isNotEmpty)
+                              shop.subArea.toString().trim(),
+                          ].join(' • ');
+                          return Material(
+                            color: Colors.transparent,
+                            child: InkWell(
+                              borderRadius: BorderRadius.circular(22),
+                              onTap: () {
 
-                            onTap: (){
+                                Navigator.pop(contextt);
 
-                              Navigator.pop(contextt);
+                                if (SharedPrefClass.getDouble(latitude) == 0.0) {
 
-                              if(SharedPrefClass.getDouble(latitude)==0.0){
+                                } else {
 
-                                Fluttertoast.showToast(msg: "Please check your connection!",
-                                    toastLength: Toast.LENGTH_SHORT,
-                                    gravity: ToastGravity.BOTTOM,
-                                    timeInSecForIosWeb: 1,
-                                    backgroundColor: Colors.black,
-                                    textColor: Colors.white,
-                                    fontSize: 16.0);
+                                  print("locationlatitude ${getdistance(SharedPrefClass.getDouble(latitude),SharedPrefClass.getDouble(longitude),double.parse(beatnamelist[i].latitude!),double.parse(beatnamelist[i].longitude!))}");
 
-                              }else{
+                                  if (getdistance(SharedPrefClass.getDouble(latitude),SharedPrefClass.getDouble(longitude),double.parse(beatnamelist[i].latitude!),double.parse(beatnamelist[i].longitude!))) {
 
-                                print("locationlatitude ${getdistance(SharedPrefClass.getDouble(latitude),SharedPrefClass.getDouble(longitude),double.parse(beatnamelist[i].latitude!),double.parse(beatnamelist[i].longitude!))}");
+                                    SharedPrefClass.setInt(SHOP_ID, beatnamelist[i].retailerID!.toInt());
+                                    selectFromCamera(status, beatnamelist[i].toString(), contextt);
 
-                                if(getdistance(SharedPrefClass.getDouble(latitude),SharedPrefClass.getDouble(longitude),double.parse(beatnamelist[i].latitude!),double.parse(beatnamelist[i].longitude!))){
+                                  } else {
 
-                                  SharedPrefClass.setInt(SHOP_ID,beatnamelist[i].retailerID!.toInt());
-                                  selectFromCamera(status,beatnamelist[i].toString(),contextt);
+                                    setState(() {
+                                      _isBusy = false;
+                                    });
+                                    showTooFarFromShopMessage(this.context);
 
-                                }else{
-
-                                  setState(() {
-                                    _isLoading=false;
-                                  });
-
-                                  Fluttertoast.showToast(msg: "Too far from store!",
-                                      toastLength: Toast.LENGTH_SHORT,
-                                      gravity: ToastGravity.BOTTOM,
-                                      timeInSecForIosWeb: 1,
-                                      backgroundColor: Colors.black,
-                                      textColor: Colors.white,
-                                      fontSize: 16.0);
+                                  }
 
                                 }
 
-                              }
-
-                            },
-                            child: Container(
-                              padding:EdgeInsets.all(10),
-                              child: Text("${beatnamelist[i].retailerName}"),
-                            )
-
-                        );
-                      }
+                              },
+                              child: Ink(
+                                padding: const EdgeInsets.all(14),
+                                decoration: BoxDecoration(
+                                  color: Colors.white,
+                                  borderRadius: BorderRadius.circular(22),
+                                  border: Border.all(color: const Color(0xFFE3EADF)),
+                                  boxShadow: const [
+                                    BoxShadow(
+                                      color: Color(0x0D243127),
+                                      blurRadius: 12,
+                                      offset: Offset(0, 4),
+                                    ),
+                                  ],
+                                ),
+                                child: Row(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Container(
+                                      width: 44,
+                                      height: 44,
+                                      decoration: BoxDecoration(
+                                        color: _attendanceGreenSoft,
+                                        borderRadius: BorderRadius.circular(14),
+                                      ),
+                                      child: const Icon(
+                                        Icons.storefront_rounded,
+                                        color: _attendanceGreenDark,
+                                        size: 22,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 12),
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            "${shop.retailerName}",
+                                            style: const TextStyle(
+                                              color: Color(0xFF203127),
+                                              fontWeight: FontWeight.w700,
+                                              fontFamily: _popupFontFamily,
+                                              fontSize: 15.5,
+                                            ),
+                                          ),
+                                          if (areaText.isNotEmpty) ...[
+                                            const SizedBox(height: 6),
+                                            Container(
+                                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                                              decoration: BoxDecoration(
+                                                color: const Color(0xFFF4F7F2),
+                                                borderRadius: BorderRadius.circular(999),
+                                              ),
+                                              child: Text(
+                                                areaText,
+                                                style: const TextStyle(
+                                                  color: Color(0xFF617066),
+                                                  fontSize: 11.5,
+                                                  fontFamily: _popupFontFamily,
+                                                ),
+                                              ),
+                                            ),
+                                          ],
+                                        ],
+                                      ),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Container(
+                                      width: 34,
+                                      height: 34,
+                                      decoration: BoxDecoration(
+                                        color: const Color(0xFFF3F7F0),
+                                        borderRadius: BorderRadius.circular(12),
+                                      ),
+                                      child: const Icon(
+                                        Icons.chevron_right_rounded,
+                                        color: _attendanceGreenDark,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          );
+                        }
+                    ),
                   ),
                 )
               ),
               onWillPop: () {
 
                 setState(() {
-                  _isLoading = false;
+                  _isBusy = false;
                 });
 
                 return new Future(() => true);
@@ -616,14 +1049,11 @@ class AttendanceState extends State<Attendance>{
     var camerastatus = await Permissionhandler.Permission.camera.status;
 
     if(camerastatus.isDenied == true){
-
-      Fluttertoast.showToast(msg: "Please allow camera permission!",
-          toastLength: Toast.LENGTH_SHORT,
-          gravity: ToastGravity.BOTTOM,
-          timeInSecForIosWeb: 1,
-          backgroundColor: Colors.black,
-          textColor: Colors.white,
-          fontSize: 16.0);
+      if (mounted) {
+        setState(() {
+          _isBusy = false;
+        });
+      }
 
       Map<Permissionhandler.Permission, Permissionhandler.PermissionStatus> statuses = await [
         Permissionhandler.Permission.camera
@@ -643,11 +1073,13 @@ class AttendanceState extends State<Attendance>{
         String newPath = path.join(dir,("$userid-${now.day}-${now.month}-${now.year}-${now.hour}${now.minute}${now.second}.jpg"));
         f = await File(cameraFile.path).copy(newPath);
 
-        markattendance(status,beatid,contextt,f!);
-        setState(() {
-          _isLoading=false;
-        });
+        await markattendance(status,beatid,contextt,f!);
       }catch(e){
+        if (mounted) {
+          setState(() {
+            _isBusy = false;
+          });
+        }
 
         print('Failed to pick image: $e');
 
@@ -673,7 +1105,7 @@ class AttendanceState extends State<Attendance>{
       request.fields['address']= _currentAddress;
       request.fields['retailerId']= SharedPrefClass.getInt(SHOP_ID).toString();
       request.fields['simNo']= serielno.toString();
-
+      
       if(file != null){
         request.files.add(await http.MultipartFile.fromPath('image', file.path));
       }
@@ -684,20 +1116,12 @@ class AttendanceState extends State<Attendance>{
 
       if(response.statusCode == 200){
 
-        Fluttertoast.showToast(msg: responsedData.toString(),
-            toastLength: Toast.LENGTH_SHORT,
-            gravity: ToastGravity.BOTTOM,
-            timeInSecForIosWeb: 1,
-            backgroundColor: Colors.black,
-            textColor: Colors.white,
-            fontSize: 16.0);
-
         if(responsedData.contains("DONE")){
 
           SharedPrefClass.setString(ATT_STATUS,status);
 
           setState(() {
-            _isLoading=false;
+            _isBusy=false;
           });
 
           Navigator.push(
@@ -706,21 +1130,29 @@ class AttendanceState extends State<Attendance>{
                   builder: (context) =>
                       HomeScreen()));
 
+        } else {
+          if (mounted) {
+            setState(() {
+              _isBusy = false;
+            });
+          }
         }
 
       }else{
-
-        Fluttertoast.showToast(msg: "Please contact admin!!",
-            toastLength: Toast.LENGTH_SHORT,
-            gravity: ToastGravity.BOTTOM,
-            timeInSecForIosWeb: 1,
-            backgroundColor: Colors.black,
-            textColor: Colors.white,
-            fontSize: 16.0);
+        if (mounted) {
+          setState(() {
+            _isBusy = false;
+          });
+        }
 
       }
 
     }catch(e){
+      if (mounted) {
+        setState(() {
+          _isBusy = false;
+        });
+      }
 
       print("print image $e");
 
@@ -729,4 +1161,3 @@ class AttendanceState extends State<Attendance>{
   }
 
 }
-

@@ -3,7 +3,7 @@ import 'package:promoterapp/data/network/NetworkApiService.dart';
 import 'package:promoterapp/res/app_url.dart';
 
 class AuthRepository{
-
+    
     BaseApiServices baseApiServices = NetworkApiServices();
 
     /*login*/

@@ -18,7 +18,7 @@ packages:
     source: hosted
     version: "2.13.0"
   battery_plus:
-    dependency: "direct dev"
+    dependency: "direct main"
     description:
       name: battery_plus
       sha256: ad16fcb55b7384be6b4bbc763d5e2031ac7ea62b2d9b6b661490c7b9741155bf
@@ -74,7 +74,7 @@ packages:
     source: hosted
     version: "1.19.1"
   connectivity_plus:
-    dependency: "direct dev"
+    dependency: "direct main"
     description:
       name: connectivity_plus
       sha256: "33bae12a398f841c6cda09d1064212957265869104c478e5ad51e2fb26c3973c"
@@ -122,7 +122,7 @@ packages:
     source: hosted
     version: "0.7.11"
   device_info_plus:
-    dependency: "direct dev"
+    dependency: "direct main"
     description:
       name: device_info_plus
       sha256: "4df8babf73058181227e18b08e6ea3520cf5fc5d796888d33b7cb0f33f984b7c"
@@ -138,7 +138,7 @@ packages:
     source: hosted
     version: "7.0.3"
   dotted_border:
-    dependency: "direct dev"
+    dependency: "direct main"
     description:
       name: dotted_border
       sha256: "99b091ec6891ba0c5331fdc2b502993c7c108f898995739a73c6845d71dad70c"
@@ -162,7 +162,7 @@ packages:
     source: hosted
     version: "1.3.3"
   fast_charts:
-    dependency: "direct dev"
+    dependency: "direct main"
     description:
       name: fast_charts
       sha256: c366c3d85c558598f068bceeb7da0d858a32989aef7ebc33608aa3d20b34f8e4
@@ -226,7 +226,7 @@ packages:
     source: hosted
     version: "1.1.1"
   fl_chart:
-    dependency: "direct dev"
+    dependency: "direct main"
     description:
       name: fl_chart
       sha256: "7ca9a40f4eb85949190e54087be8b4d6ac09dc4c54238d782a34cf1f7c011de9"
@@ -239,7 +239,7 @@ packages:
     source: sdk
     version: "0.0.0"
   flutter_advanced_drawer:
-    dependency: "direct dev"
+    dependency: "direct main"
     description:
       name: flutter_advanced_drawer
       sha256: "8567eb3751e95e5eac53f81def32d41bfcfa135c9d383f89f089764df6b43274"
@@ -247,7 +247,7 @@ packages:
     source: hosted
     version: "1.5.0"
   flutter_background_service:
-    dependency: "direct dev"
+    dependency: "direct main"
     description:
       name: flutter_background_service
       sha256: "70a1c185b1fa1a44f8f14ecd6c86f6e50366e3562f00b2fa5a54df39b3324d3d"
@@ -255,7 +255,7 @@ packages:
     source: hosted
     version: "5.1.0"
   flutter_background_service_android:
-    dependency: "direct dev"
+    dependency: "direct main"
     description:
       name: flutter_background_service_android
       sha256: ca0793d4cd19f1e194a130918401a3d0b1076c81236f7273458ae96987944a87
@@ -279,7 +279,7 @@ packages:
     source: hosted
     version: "5.1.2"
   flutter_echarts:
-    dependency: "direct dev"
+    dependency: "direct main"
     description:
       name: flutter_echarts
       sha256: "1102f0f82d3ca6025cf700d345ecc8c15c8bab38f5315dd2dcb67ecdb3fe3d91"
@@ -295,7 +295,7 @@ packages:
     source: hosted
     version: "6.0.0"
   flutter_local_notifications:
-    dependency: "direct dev"
+    dependency: "direct main"
     description:
       name: flutter_local_notifications
       sha256: "19ffb0a8bb7407875555e5e98d7343a633bb73707bae6c6a5f37c90014077875"
@@ -335,7 +335,7 @@ packages:
     source: hosted
     version: "2.0.33"
   flutter_progress_hud:
-    dependency: "direct dev"
+    dependency: "direct main"
     description:
       name: flutter_progress_hud
       sha256: "19a4889460b7482c5026a936b768996dade4daad8570e8c0493e292d57121dbb"
@@ -343,7 +343,7 @@ packages:
     source: hosted
     version: "2.0.2"
   flutter_sim_data:
-    dependency: "direct dev"
+    dependency: "direct main"
     description:
       name: flutter_sim_data
       sha256: "41706faabc297b7254542ea3be6b5c597c795b852ad2cb7be89f244a8d2744dd"
@@ -351,7 +351,7 @@ packages:
     source: hosted
     version: "1.0.5"
   flutter_slider_drawer:
-    dependency: "direct dev"
+    dependency: "direct main"
     description:
       name: flutter_slider_drawer
       sha256: "41a627bc3a87c981ca128c0ec4e0f2135244c8e13a78bf472db4d59a1ed9896f"
@@ -369,15 +369,15 @@ packages:
     source: sdk
     version: "0.0.0"
   fluttertoast:
-    dependency: "direct dev"
+    dependency: "direct main"
     description:
       name: fluttertoast
-      sha256: "144ddd74d49c865eba47abe31cbc746c7b311c82d6c32e571fd73c4264b740e2"
+      sha256: "7903c9d5339173497bfecbc23bc4212f5a87e0edfac2e1693fb74465ea67da7e"
       url: "https://pub.dev"
     source: hosted
-    version: "9.0.0"
+    version: "9.1.0"
   geocoding:
-    dependency: "direct dev"
+    dependency: "direct main"
     description:
       name: geocoding
       sha256: "606be036287842d779d7ec4e2f6c9435fc29bbbd3c6da6589710f981d8852895"
@@ -409,7 +409,7 @@ packages:
     source: hosted
     version: "3.2.0"
   geolocator:
-    dependency: "direct dev"
+    dependency: "direct main"
     description:
       name: geolocator
       sha256: ee2212a3df8292ec4c90b91183b8001d3f5a800823c974b570c5f9344ca320dc
@@ -457,7 +457,7 @@ packages:
     source: hosted
     version: "0.2.5"
   http:
-    dependency: "direct dev"
+    dependency: "direct main"
     description:
       name: http
       sha256: "87721a4a50b19c7f1d49001e51409bddc46303966ce89a65af4f4e6004896412"
@@ -473,7 +473,7 @@ packages:
     source: hosted
     version: "4.1.2"
   image_picker:
-    dependency: "direct dev"
+    dependency: "direct main"
     description:
       name: image_picker
       sha256: "784210112be18ea55f69d7076e2c656a4e24949fa9e76429fe53af0c0f4fa320"
@@ -537,7 +537,7 @@ packages:
     source: hosted
     version: "0.2.2"
   intl:
-    dependency: "direct dev"
+    dependency: "direct main"
     description:
       name: intl
       sha256: "3df61194eb431efc39c4ceba583b95633a403f46c9fd341e550ce0bfa50e9aa5"
@@ -545,7 +545,7 @@ packages:
     source: hosted
     version: "0.20.2"
   latlong2:
-    dependency: "direct dev"
+    dependency: "direct main"
     description:
       name: latlong2
       sha256: "98227922caf49e6056f91b6c56945ea1c7b166f28ffcd5fb8e72fc0b453cc8fe"
@@ -593,7 +593,7 @@ packages:
     source: hosted
     version: "2.0.1"
   location:
-    dependency: "direct dev"
+    dependency: "direct main"
     description:
       name: location
       sha256: b080053c181c7d152c43dd576eec6436c40e25f326933051c330da563ddd5333
@@ -620,10 +620,10 @@ packages:
     dependency: transitive
     description:
       name: matcher
-      sha256: "12956d0ad8390bbcc63ca2e1469c0619946ccb52809807067a7020d57e647aa6"
+      sha256: dc0b7dc7651697ea4ff3e69ef44b0407ea32c487a39fff6a4004fa585e901861
       url: "https://pub.dev"
     source: hosted
-    version: "0.12.18"
+    version: "0.12.19"
   material_color_utilities:
     dependency: transitive
     description:
@@ -636,10 +636,10 @@ packages:
     dependency: transitive
     description:
       name: meta
-      sha256: "23f08335362185a5ea2ad3a4e597f1375e78bce8a040df5c600c8d3552ef2394"
+      sha256: "1741988757a65eb6b36abe716829688cf01910bbf91c34354ff7ec1c3de2b349"
       url: "https://pub.dev"
     source: hosted
-    version: "1.17.0"
+    version: "1.18.0"
   mime:
     dependency: transitive
     description:
@@ -649,7 +649,7 @@ packages:
     source: hosted
     version: "2.0.0"
   mobile_number:
-    dependency: "direct dev"
+    dependency: "direct main"
     description:
       name: mobile_number
       sha256: "8dc5b7a19193f7a41fa07aa933c8db8085033e6201b20323f20e4d283ea2a9a8"
@@ -673,7 +673,7 @@ packages:
     source: hosted
     version: "0.5.0"
   package_info_plus:
-    dependency: "direct dev"
+    dependency: "direct main"
     description:
       name: package_info_plus
       sha256: f69da0d3189a4b4ceaeb1a3defb0f329b3b352517f52bed4290f83d4f06bc08d
@@ -697,7 +697,7 @@ packages:
     source: hosted
     version: "1.9.1"
   path_provider:
-    dependency: "direct dev"
+    dependency: "direct main"
     description:
       name: path_provider
       sha256: "50c5dd5b6e1aaf6fb3a78b33f6aa3afca52bf903a8a5298f53101fdaee55bbcd"
@@ -745,7 +745,7 @@ packages:
     source: hosted
     version: "2.3.0"
   permission_handler:
-    dependency: "direct dev"
+    dependency: "direct main"
     description:
       name: permission_handler
       sha256: bc917da36261b00137bbc8896bf1482169cd76f866282368948f032c8c1caae1
@@ -801,7 +801,7 @@ packages:
     source: hosted
     version: "7.0.1"
   pie_chart:
-    dependency: "direct dev"
+    dependency: "direct main"
     description:
       name: pie_chart
       sha256: "58e6a46999ac938bfa1c3e5be414d6e149f037647197dca03ba3614324c12c82"
@@ -825,7 +825,7 @@ packages:
     source: hosted
     version: "2.1.8"
   provider:
-    dependency: "direct dev"
+    dependency: "direct main"
     description:
       name: provider
       sha256: "4e82183fa20e5ca25703ead7e05de9e4cceed1fbd1eadc1ac3cb6f565a09f272"
@@ -833,7 +833,7 @@ packages:
     source: hosted
     version: "6.1.5+1"
   shared_preferences:
-    dependency: "direct dev"
+    dependency: "direct main"
     description:
       name: shared_preferences
       sha256: "2939ae520c9024cb197fc20dee269cd8cdbf564c8b5746374ec6cacdc5169e64"
@@ -889,13 +889,13 @@ packages:
     source: hosted
     version: "2.4.1"
   sim_card_code:
-    dependency: "direct dev"
+    dependency: "direct main"
     description:
       name: sim_card_code
-      sha256: cec9a59edd5528a402c08feb77776b370ca64ce3f19a397029b0af5568473c34
+      sha256: "3409113140cc9fbb6d3a662bb44e216a81dcfe9513e84a837855474dfaf61854"
       url: "https://pub.dev"
     source: hosted
-    version: "0.1.0"
+    version: "0.2.0"
   sky_engine:
     dependency: transitive
     description: flutter
@@ -910,7 +910,7 @@ packages:
     source: hosted
     version: "1.10.1"
   sqflite:
-    dependency: "direct dev"
+    dependency: "direct main"
     description:
       name: sqflite
       sha256: e2297b1da52f127bc7a3da11439985d9b536f75070f3325e62ada69a5c585d03
@@ -974,7 +974,7 @@ packages:
     source: hosted
     version: "1.4.1"
   swipeable_page_route:
-    dependency: "direct dev"
+    dependency: "direct main"
     description:
       name: swipeable_page_route
       sha256: "3fa21771017efe12e9aeeafeb2c1221daef5effa34043980fc3cb689ae5df403"
@@ -982,7 +982,7 @@ packages:
     source: hosted
     version: "0.4.7"
   syncfusion_flutter_charts:
-    dependency: "direct dev"
+    dependency: "direct main"
     description:
       name: syncfusion_flutter_charts
       sha256: "37d6803e01761ebc8e25d9c993ca0b59e00b53eebae45a77163cf54e96c6a3d1"
@@ -1017,10 +1017,10 @@ packages:
     dependency: transitive
     description:
       name: test_api
-      sha256: "93167629bfc610f71560ab9312acdda4959de4df6fac7492c89ff0d3886f6636"
+      sha256: "949a932224383300f01be9221c39180316445ecb8e7547f70a41a35bf421fb9e"
       url: "https://pub.dev"
     source: hosted
-    version: "0.7.9"
+    version: "0.7.11"
   timezone:
     dependency: transitive
     description:
@@ -1142,5 +1142,5 @@ packages:
     source: hosted
     version: "6.6.1"
 sdks:
-  dart: ">=3.9.0 <4.0.0"
-  flutter: ">=3.35.1"
+  dart: ">=3.11.0 <4.0.0"
+  flutter: ">=3.41.0"

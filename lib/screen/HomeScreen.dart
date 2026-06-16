@@ -20,6 +20,7 @@ import 'package:geocoding/geocoding.dart' as geocoding;
 import 'package:flutter_background_service/flutter_background_service.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+
 class JivoColors {
   static const Color primary = Color(0xFFD4A017); // Golden Yellow
   static const Color primaryDark = Color(0xFFB8860B); // Dark Goldenrod
@@ -37,17 +38,14 @@ bool haspermission = false;
 late LocationPermission permission;
 late Position position;
 
-class HomeScreen extends StatefulWidget{
-
+class HomeScreen extends StatefulWidget {
   @override
   State<StatefulWidget> createState() {
     return _HomeScreenState();
   }
-
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-
   int _currentIndex = 0;
 
   final List<Widget> _screens = [
@@ -57,72 +55,77 @@ class _HomeScreenState extends State<HomeScreen> {
     Selfie(),
   ];
 
+  void _goToDashboard() {
+    if (_currentIndex != 0 && mounted) {
+      setState(() {
+        _currentIndex = 0;
+      });
+    }
+  }
+
   void _logout() {
     showDialog(
       context: context,
-      builder: (context) =>
-          AlertDialog(
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(20),
-            ),
-            icon: Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: Colors.red.shade50,
-                shape: BoxShape.circle,
-              ),
-              child: Icon(
-                Icons.logout_rounded,
-                color: Colors.red.shade400,
-                size: 32,
-              ),
-            ),
-            title: const Text(
-              'Logout',
-              style: TextStyle(fontWeight: FontWeight.w600),
-            ),
-            content: const Text(
-              'Are you sure you want to logout?',
-              textAlign: TextAlign.center,
-            ),
-            actionsAlignment: MainAxisAlignment.center,
-            actions: [
-              OutlinedButton(
-                onPressed: () => Navigator.pop(context),
-                style: OutlinedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 24, vertical: 12),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                ),
-                child: const Text('Cancel'),
-              ),
-              const SizedBox(width: 12),
-              FilledButton(
-                onPressed: () async {
-                  SharedPreferences preferences =
-                  await SharedPreferences.getInstance();
-                  preferences.clear();
-                  if (mounted) {
-                    Navigator.pushReplacement(
-                      context,
-                      MaterialPageRoute(builder: (_) => LoginScreen()),
-                    );
-                  }
-                },
-                style: FilledButton.styleFrom(
-                  backgroundColor: Colors.red.shade400,
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 24, vertical: 12),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                ),
-                child: const Text('Logout'),
-              ),
-            ],
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+        ),
+        icon: Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: Colors.red.shade50,
+            shape: BoxShape.circle,
           ),
+          child: Icon(
+            Icons.logout_rounded,
+            color: Colors.red.shade400,
+            size: 32,
+          ),
+        ),
+        title: const Text(
+          'Logout',
+          style: TextStyle(fontWeight: FontWeight.w600),
+        ),
+        content: const Text(
+          'Are you sure you want to logout?',
+          textAlign: TextAlign.center,
+        ),
+        actionsAlignment: MainAxisAlignment.center,
+        actions: [
+          OutlinedButton(
+            onPressed: () => Navigator.pop(context),
+            style: OutlinedButton.styleFrom(
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+            child: const Text('Cancel'),
+          ),
+          const SizedBox(width: 12),
+          FilledButton(
+            onPressed: () async {
+              SharedPreferences preferences =
+                  await SharedPreferences.getInstance();
+              preferences.clear();
+              if (mounted) {
+                Navigator.pushReplacement(
+                  context,
+                  MaterialPageRoute(builder: (_) => LoginScreen()),
+                );
+              }
+            },
+            style: FilledButton.styleFrom(
+              backgroundColor: Colors.red.shade400,
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+            child: const Text('Logout'),
+          ),
+        ],
+      ),
     );
   }
 
@@ -146,35 +149,73 @@ class _HomeScreenState extends State<HomeScreen> {
     return PopScope(
       canPop: false,
       onPopInvokedWithResult: (didPop, result) {
-        if (!didPop) _logout();
+        if (didPop) {
+          return;
+        }
+
+        if (_currentIndex == 0) {
+          _logout();
+        } else {
+          _goToDashboard();
+        }
       },
       child: Scaffold(
+        backgroundColor: const Color(0xFFFFFBF7),
         appBar: AppBar(
           automaticallyImplyLeading: false,
+          backgroundColor: const Color(0xFFFFFBF7),
+          surfaceTintColor: Colors.transparent,
+          leading: _currentIndex == 0
+              ? null
+              : IconButton(
+                  onPressed: _goToDashboard,
+                  icon: const Icon(Icons.arrow_back_rounded),
+                  tooltip: 'Back',
+                ),
           title: Text(
             _getTitle(),
-            style: const TextStyle(fontWeight: FontWeight.w600),
+            style: const TextStyle(
+              fontWeight: FontWeight.w600,
+              color: Color(0xFF203127),
+            ),
           ),
           centerTitle: true,
           elevation: 0,
-          scrolledUnderElevation: 2,
-          actions: [
-            IconButton(
-              onPressed: _logout,
-              icon: const Icon(Icons.logout_rounded),
-              tooltip: 'Logout',
-            ),
-            const SizedBox(width: 8),
-          ],
+          scrolledUnderElevation: 0,
+          iconTheme: const IconThemeData(color: Color(0xFF2F7A4B)),
+          actions: _currentIndex == 0
+              ? [
+                  IconButton(
+                    onPressed: _logout,
+                    icon: const Icon(Icons.logout_rounded),
+                    tooltip: 'Logout',
+                  ),
+                  const SizedBox(width: 8),
+                ]
+              : const [],
         ),
         body: _screens[_currentIndex],
         bottomNavigationBar: NavigationBar(
+          backgroundColor: const Color(0xFFFFFBF7),
+          surfaceTintColor: Colors.transparent,
+          indicatorColor: const Color(0xFFE5F2E5),
           selectedIndex: _currentIndex,
           onDestinationSelected: (index) {
             setState(() => _currentIndex = index);
           },
-          elevation: 3,
+          shadowColor: const Color(0x12000000),
+          elevation: 1,
           height: 70,
+          labelTextStyle: MaterialStateProperty.resolveWith((states) {
+            final isSelected = states.contains(MaterialState.selected);
+            return TextStyle(
+              fontSize: 12,
+              fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+              color: isSelected
+                  ? const Color(0xFF203127)
+                  : const Color(0xFF6E766F),
+            );
+          }),
           labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
           destinations: const [
             NavigationDestination(
@@ -202,11 +243,10 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
     );
   }
-
 }
+
 @pragma('vm:entry-point')
 void onStart(ServiceInstance service) async {
-
   DartPluginRegistrant.ensureInitialized();
 
   if (service is AndroidServiceInstance) {
@@ -224,7 +264,6 @@ void onStart(ServiceInstance service) async {
   });
 
   Timer.periodic(const Duration(minutes: 15), (timer) async {
-
     if (service is AndroidServiceInstance) {
       if (await service.isForegroundService()) {
         checkGps();
@@ -238,25 +277,23 @@ void onStart(ServiceInstance service) async {
         "device": "device",
       },
     );
-
   });
-
 }
 
 Future<void> initializeService() async {
-
+  
   final service = FlutterBackgroundService();
 
   const AndroidNotificationChannel channel = AndroidNotificationChannel(
     'my_foreground', // id
     'MY FOREGROUND SERVICE', // title
     description:
-    'This channel is used for important notifications.', // description
-    importance: Importance.low, // importance must be at low or higher level
+        'This channel is used for important notifications.', 
+    importance: Importance.low, 
   );
 
   final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
-  FlutterLocalNotificationsPlugin();
+      FlutterLocalNotificationsPlugin();
 
   if (Platform.isIOS || Platform.isAndroid) {
     await flutterLocalNotificationsPlugin.initialize(
@@ -269,16 +306,14 @@ Future<void> initializeService() async {
 
   await flutterLocalNotificationsPlugin
       .resolvePlatformSpecificImplementation<
-      AndroidFlutterLocalNotificationsPlugin>()
+          AndroidFlutterLocalNotificationsPlugin>()
       ?.createNotificationChannel(channel);
 
   await service.configure(
     androidConfiguration: AndroidConfiguration(
-
       onStart: onStart,
       autoStart: true,
       isForegroundMode: true,
-
       notificationChannelId: 'my_foreground',
       initialNotificationTitle: 'Jivo Dsr',
       initialNotificationContent: 'Jivo Dsr',
@@ -292,7 +327,6 @@ Future<void> initializeService() async {
   );
 
   service.startService();
-
 }
 
 @pragma('vm:entry-point')
@@ -311,35 +345,33 @@ Future<bool> onIosBackground(ServiceInstance service) async {
 
 checkGps() async {
   servicestatus = await Geolocator.isLocationServiceEnabled();
-  if(servicestatus){
+  if (servicestatus) {
     permission = await Geolocator.checkPermission();
 
     if (permission == LocationPermission.denied) {
       permission = await Geolocator.requestPermission();
       if (permission == LocationPermission.denied) {
         print('Location permissions are denied');
-      }else if(permission == LocationPermission.deniedForever){
+      } else if (permission == LocationPermission.deniedForever) {
         print("'Location permissions are permanently denied");
-      }else{
+      } else {
         haspermission = true;
       }
-    }else{
+    } else {
       haspermission = true;
     }
 
-    if(haspermission){
-
+    if (haspermission) {
       getLocation();
     }
-  }else{
+  } else {
     print("GPS Service is not enabled, turn on GPS location");
   }
-
 }
 
 getLocation() async {
-
-  position = await Geolocator.getCurrentPosition(desiredAccuracy: LocationAccuracy.high);
+  position = await Geolocator.getCurrentPosition(
+      desiredAccuracy: LocationAccuracy.high);
 
   Battery _battery = Battery();
   var level = await _battery.batteryLevel;
@@ -347,43 +379,38 @@ getLocation() async {
 
   SharedPreferences prefs = await SharedPreferences.getInstance();
 
-  await geocoding.placemarkFromCoordinates(position.latitude, position.longitude)
+  await geocoding
+      .placemarkFromCoordinates(position.latitude, position.longitude)
       .then((List<geocoding.Placemark> placemarks) {
-
     geocoding.Placemark place = placemarks[0];
 
-    _currentAddress = '${place.street}, ${place.subLocality}, ${place.subAdministrativeArea}, ${place.postalCode}';
+    _currentAddress =
+        '${place.street}, ${place.subLocality}, ${place.subAdministrativeArea}, ${place.postalCode}';
 
-    try{
-
-      var locationentry=[{
-        "personId":prefs.getInt(USER_ID),
-        "timeStamp":getcurrentdatewithtime(),
-        "latitude":position.latitude,
-        "longitude":position.latitude,
-        "battery":level,
-        "GpsEnabled":isturnedon,
-        "accuracy":position.accuracy,
-        "speed":position.speed,
-        "provider":"GPS",
-        "altitude":position.altitude,
-        "address":_currentAddress}];
+    try {
+      var locationentry = [
+        {
+          "personId": prefs.getInt(USER_ID),
+          "timeStamp": getcurrentdatewithtime(),
+          "latitude": position.latitude,
+          "longitude": position.latitude,
+          "battery": level,
+          "GpsEnabled": isturnedon,
+          "accuracy": position.accuracy,
+          "speed": position.speed,
+          "provider": "GPS",
+          "altitude": position.altitude,
+          "address": _currentAddress
+        }
+      ];
 
       var request = json.encode(locationentry);
-       print("Request data ${request.toString()}");
+      print("Request data ${request.toString()}");
       savelocation(request);
-
-    }catch(e){
-
+    } catch (e) {
       print("low eexception $e");
-
     }
-
   }).catchError((e) {
-
     print("eexception $e");
-
   });
-
 }
-
