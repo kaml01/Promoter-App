@@ -77,6 +77,8 @@ dependencies:
   #sim_data_plus: ^0.1.4
   flutter_sim_data: ^1.0.5
   mobile_number: ^3.0.0
+  firebase_core: ^4.12.1
+  firebase_crashlytics: ^5.2.6
 
 dev_dependencies:
   flutter_test:

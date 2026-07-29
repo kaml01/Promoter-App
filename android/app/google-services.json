@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "108713028572",
+    "project_id": "promoter-app-jivo",
+    "storage_bucket": "promoter-app-jivo.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:108713028572:android:7d046f2d36607bfc737d19",
+        "android_client_info": {
+          "package_name": "jivo.promoters"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDPwAm4Z8ZL3xgqbOk5i0602hHc39xAO4s"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
